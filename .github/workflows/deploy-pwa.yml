@@ -25,7 +25,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # PWA build doesn't need Electron native modules — skip native rebuilds
+      - run: npm ci --ignore-scripts
 
       - run: npm run build:pwa
 
