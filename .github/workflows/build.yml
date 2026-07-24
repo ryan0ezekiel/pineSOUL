@@ -35,6 +35,10 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install Linux build deps
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev libbluetooth-dev
+
       - name: Install dependencies
         run: npm ci
 
