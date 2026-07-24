@@ -56,7 +56,9 @@ function saveAppConfig(config) {
 }
 
 export default function App() {
-  const mock = !window.electronAPI;
+  // Mock mode: only in dev (Vite dev server) when no BLE adapter is available
+  // Production PWA shows the Connect tab so users pair their real Pinecil
+  const mock = !window.electronAPI && import.meta.env.DEV;
   const [hotkeyConfig, setHotkeyConfigState] = useState(loadHotkeyConfig);
   const [appConfig, setAppConfigState] = useState(loadAppConfig);
 
