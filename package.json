@@ -1,7 +1,7 @@
 {
   "name": "pinesoul",
-  "version": "1.0.2",
-  "description": "Modern Pinecil V2 controller — soul of your soldering iron",
+  "version": "1.0.3",
+  "description": "Modern Pinecil V2 controller \u2014 soul of your soldering iron",
   "main": "electron/main.js",
   "author": "niflheimr <niflheimr@users.noreply.github.com>",
   "license": "MIT",
@@ -24,7 +24,7 @@
   "build": {
     "appId": "com.pinesoul.app",
     "productName": "pineSOUL",
-    "copyright": "Copyright © 2026 niflheimr",
+    "copyright": "Copyright \u00a9 2026 niflheimr",
     "directories": {
       "output": "release"
     },

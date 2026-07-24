@@ -47,10 +47,7 @@ export function parseSetting(buffer, version) {
   const raw = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   if (!raw || raw.byteLength < 2) return null;
   const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
-  const value = view.getUint16(0, true);
-  const mapped = (value >> 8) & 0x7f;
-  const sign = value & 0x8000;
-  return (sign !== 0 && mapped !== 0) ? -mapped : mapped;
+  return view.getUint16(0, true); // little-endian uint16 (matches Electron)
 }
 
 // ─── Setting Encoder ─────────────────────────────────────────────────
