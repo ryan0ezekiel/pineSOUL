@@ -27,7 +27,7 @@ const MOCK_LIVE_DATA = {
 };
 
 const MOCK_SETTINGS = {
-  TemperatureUnit: 1,
+  TemperatureUnit: 0,  // °C by default
   SolderingTemp: 320,
   BoostTemp: 400,
   AutoStart: 0,

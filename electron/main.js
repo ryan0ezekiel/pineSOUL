@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
 const { BleManager } = require('./ble/ble-manager.js');
 
+// ─── HiDPI / High-DPI support ───────────────────────────────────
+// Enable per-pixel antialiasing and proper device-pixel-ratio detection
+app.commandLine.appendSwitch('enable-high-dpi-support');
+app.commandLine.appendSwitch('enable-features', 'UseSkiaRenderer');
+app.commandLine.appendSwitch('high-dpi-support', '1');
+
 let mainWindow;
 const isDev = !app.isPackaged;
 const ble = new BleManager();

@@ -13,6 +13,9 @@
   body {
     @apply bg-iron-950 text-iron-200 antialiased;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   /* Glass panels */
