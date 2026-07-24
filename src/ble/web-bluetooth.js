@@ -171,17 +171,17 @@ export class WebBleAdapter {
     if (this.#device?.gatt?.connected) {
       this.#device.gatt.disconnect();
     }
-    this.#handleDisconnect();
+    this.#handleDisconnect('user');
     return { ok: true };
   }
 
-  #handleDisconnect() {
+  #handleDisconnect(reason = 'unknown') {
     this.#connected = false;
     this.#server = null;
     this.#bulkDataChar = null;
     this.#settingsChars = {};
     this.#saveChar = null;
-    this.#emit('connectionChange', { status: 'disconnected' });
+    this.#emit('connectionChange', { status: 'disconnected', reason });
   }
 
   // ── Live Data (subscribe to BulkData notifications) ────────────────

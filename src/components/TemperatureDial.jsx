@@ -1,4 +1,4 @@
-import React, { useMemo, useId } from 'react';
+import React, { useMemo, useId, memo } from 'react';
 import { motion } from 'framer-motion';
 
 const RING_SIZE = 280;
@@ -7,7 +7,7 @@ const RADIUS = (RING_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const MAX_TEMP = 450;
 
-export default function TemperatureDial({ liveData, mode, currentTempPercent, setTempPercent, formatTemp, displayUnit }) {
+export default memo(function TemperatureDial({ liveData, mode, currentTempPercent, setTempPercent, formatTemp, displayUnit }) {
   const currentTemp = liveData?.LiveTemp || 0;
   const setTemp = liveData?.SetTemp || 0;
 
@@ -149,4 +149,4 @@ export default function TemperatureDial({ liveData, mode, currentTempPercent, se
       </div>
     </div>
   );
-}
+});

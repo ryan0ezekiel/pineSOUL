@@ -4,11 +4,12 @@ import { Bluetooth, Search, Link2, Unlink, RefreshCw, Plug, Signal, Loader2 } fr
 
 function DeviceCard({ device, onConnect }) {
   return (
-    <motion.div
+    <motion.button
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-subtle p-4 flex items-center justify-between hover:border-soul-500/30 transition-all cursor-pointer group"
+      className="w-full glass-subtle p-4 flex items-center justify-between hover:border-soul-500/30 transition-all cursor-pointer group text-left"
       onClick={() => onConnect(device.address)}
+      aria-label={`Connect to ${device.name || 'Pinecil'} ${device.address || ''}`}
     >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-soul-500/10 border border-soul-500/20 flex items-center justify-center">
@@ -32,7 +33,7 @@ function DeviceCard({ device, onConnect }) {
           <Link2 className="w-4 h-4 text-soul-400" />
         </div>
       </div>
-    </motion.div>
+    </motion.button>
   );
 }
 
@@ -53,6 +54,7 @@ export default function ConnectionPanel({ connection, devices, scanning, deviceI
             </div>
             <button
               onClick={onDisconnect}
+              aria-label="Disconnect from Pinecil"
               className="flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg border border-red-500/20 transition-colors"
             >
               <Unlink className="w-3.5 h-3.5" />
@@ -64,6 +66,8 @@ export default function ConnectionPanel({ connection, devices, scanning, deviceI
             <button
               onClick={onScan}
               disabled={scanning}
+              aria-busy={scanning}
+              aria-label={scanning ? 'Scanning for devices' : 'Scan for Pinecil devices'}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-soul-500/15 hover:bg-soul-500/25 text-soul-400 text-sm font-medium rounded-xl border border-soul-500/30 transition-all disabled:opacity-50"
             >
               {scanning ? (

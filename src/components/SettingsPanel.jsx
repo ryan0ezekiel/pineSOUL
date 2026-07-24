@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Moon, Power, Monitor, Settings2, Cpu,
@@ -23,7 +23,7 @@ const HIDDEN_SETTINGS = new Set([
   'save_to_flash', 'SettingsReset',
 ]);
 
-function SettingRow({ name, value, meta, onChange }) {
+const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDirty }) {
   const limits = VALUE_LIMITS[name];
   const isToggle = meta.format && meta.format(0) === 'Off' && meta.format(1) === 'On';
   const isSelect = meta.format && !isToggle;
@@ -33,9 +33,15 @@ function SettingRow({ name, value, meta, onChange }) {
     const isOn = value >= 1;
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
-        <span className="text-sm text-iron-300">{meta.label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-iron-300">{meta.label}</span>
+          {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-soul-400" title="Modified" />}
+        </div>
         <button
           onClick={() => onChange(name, isOn ? 0 : 1)}
+          role="switch"
+          aria-checked={isOn}
+          aria-label={`${meta.label}: ${isOn ? 'On' : 'Off'}`}
           className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${
             isOn ? 'bg-soul-500' : 'bg-iron-700'
           }`}
@@ -53,10 +59,14 @@ function SettingRow({ name, value, meta, onChange }) {
   if (selectOptions) {
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
-        <span className="text-sm text-iron-300">{meta.label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-iron-300">{meta.label}</span>
+          {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-soul-400" title="Modified" />}
+        </div>
         <select
           value={value ?? 0}
           onChange={e => onChange(name, parseInt(e.target.value))}
+          aria-label={meta.label}
           className="bg-iron-800 border border-iron-700/50 rounded-lg px-3 py-1 text-sm text-iron-200 focus:outline-none focus:border-soul-500/50 appearance-none cursor-pointer"
         >
           {selectOptions.map(opt => (
@@ -71,10 +81,14 @@ function SettingRow({ name, value, meta, onChange }) {
     const step = (limits[1] - limits[0]) > 50 ? 10 : 1;
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
-        <span className="text-sm text-iron-300">{meta.label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-iron-300">{meta.label}</span>
+          {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-soul-400" title="Modified" />}
+        </div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => onChange(name, Math.max(limits[0], (value ?? 0) - step))}
+            aria-label={`Decrease ${meta.label}`}
             className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400 hover:text-iron-200 transition-colors"
           >
             <Minus className="w-3 h-3" />
@@ -85,6 +99,7 @@ function SettingRow({ name, value, meta, onChange }) {
           </div>
           <button
             onClick={() => onChange(name, Math.min(limits[1], (value ?? 0) + step))}
+            aria-label={`Increase ${meta.label}`}
             className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400 hover:text-iron-200 transition-colors"
           >
             <Plus className="w-3 h-3" />
@@ -96,13 +111,16 @@ function SettingRow({ name, value, meta, onChange }) {
 
   return (
     <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
-      <span className="text-sm text-iron-300">{meta.label}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-iron-300">{meta.label}</span>
+        {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-soul-400" title="Modified" />}
+      </div>
       <span className="text-sm font-mono text-iron-400 tabular-nums">
         {value ?? '—'} {meta.unit}
       </span>
     </div>
   );
-}
+});
 
 // ─── Hotkey configuration rows ──────────────────────────────────
 function HotkeyRow({ label, description, value, onChange }) {
@@ -136,6 +154,7 @@ function HotkeyRow({ label, description, value, onChange }) {
       <button
         onClick={() => setEditing(true)}
         onBlur={() => setEditing(false)}
+        aria-label={`${label}: ${editing ? 'Press a key' : value || 'Not set'}`}
         className={`relative min-w-[80px] px-3 py-1.5 rounded-lg text-sm font-mono transition-all ${
           editing
             ? 'bg-soul-500/20 border border-soul-500/50 text-soul-400 shadow-inner'
@@ -144,13 +163,13 @@ function HotkeyRow({ label, description, value, onChange }) {
         onKeyDown={editing ? handleKeyDown : undefined}
         tabIndex={0}
       >
-        {editing ? '…' : (value || '—')}
+        {editing ? 'Press a key…' : (value || '—')}
       </button>
     </div>
   );
 }
 
-function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
+function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
   const [expanded, setExpanded] = useState(false);
   const group = GROUPS[groupKey];
   if (!group) return null;
@@ -172,6 +191,7 @@ function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHot
     <div className="glass-subtle overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-iron-800/30 transition-colors"
       >
         <div className="flex items-center gap-2.5">
@@ -316,6 +336,7 @@ function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHot
                     value={settings[name]}
                     meta={meta}
                     onChange={onChange}
+                    isDirty={dirtySettings?.has(name)}
                   />
                 ))
               )}
@@ -327,7 +348,18 @@ function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHot
   );
 }
 
-export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChanges, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
+export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChanges, dirtySettings, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      await onSaveFlash();
+    } finally {
+      setSaving(false);
+    }
+  }, [onSaveFlash]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-iron-800/50">
@@ -336,11 +368,22 @@ export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChan
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            onClick={onSaveFlash}
+            onClick={handleSave}
+            disabled={saving}
+            aria-busy={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-soul-500/20 hover:bg-soul-500/30 text-soul-400 text-xs font-medium rounded-lg border border-soul-500/30 transition-colors"
           >
-            <Save className="w-3.5 h-3.5" />
-            Save to Flash
+            {saving ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-soul-400/30 border-t-soul-400 rounded-full animate-spin" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Save className="w-3.5 h-3.5" />
+                Save to Flash
+              </>
+            )}
           </motion.button>
         )}
       </div>
@@ -352,6 +395,7 @@ export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChan
             groupKey={groupKey}
             settings={settings}
             onChange={onChange}
+            pendingChanges={dirtySettings}
             hotkeyConfig={hotkeyConfig}
             onUpdateHotkeyConfig={onUpdateHotkeyConfig}
             appConfig={appConfig}

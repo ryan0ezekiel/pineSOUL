@@ -215,7 +215,7 @@ class BleManager {
     throw err;
   }
 
-  async disconnect() {
+  async disconnect(reason = 'user') {
     this._stopLiveData();
 
     // Clear scan timeout
@@ -239,7 +239,7 @@ class BleManager {
     this.settingsCharacteristics = [];
     this.bulkDataCharacteristic = null;
 
-    this._emit('connectionChange', { status: 'disconnected' });
+    this._emit('connectionChange', { status: 'disconnected', reason });
   }
 
   async _loadSettings() {
@@ -289,7 +289,7 @@ class BleManager {
         console.warn('Live data read error:', e);
         // If device disconnects, handle it
         if (!this.device?.connected) {
-          this.disconnect();
+          this.disconnect('connection_lost');
         }
       }
     }, this._pollingInterval);

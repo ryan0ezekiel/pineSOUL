@@ -82,6 +82,13 @@ export default function App() {
 
   // ─── Global keyboard shortcut handler ─────────────────
   useEffect(() => {
+    // Global unhandled promise rejection handler
+    const handleUnhandledRejection = (e) => {
+      console.error('Unhandled promise rejection:', e.reason);
+      e.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
     const handleKeyDown = (e) => {
       // Ignore when typing in inputs
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
@@ -104,7 +111,10 @@ export default function App() {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, [hotkeyConfig, p.handleTempUp, p.handleTempDown, p.handleToggleMode]);
 
   return (
@@ -117,13 +127,15 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar — tabs */}
         <nav className="w-16 flex flex-col items-center py-4 gap-1 border-r border-iron-800/50 bg-iron-900/30 shrink-0">
-          {TABS.map(tab => {
+          {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = p.activeTab === tab.key;
             return (
               <button
                 key={tab.key}
                 onClick={() => p.setActiveTab(tab.key)}
+                aria-label={tab.label}
+                aria-current={active ? 'page' : undefined}
                 className={`relative w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 group ${
                   active
                     ? 'bg-soul-500/15 text-soul-400'
@@ -148,7 +160,10 @@ export default function App() {
           {/* Connection indicator */}
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
             p.connection === 'connected' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-iron-800/50 text-iron-600'
-          }`}>
+          }`}
+            role="status"
+            aria-label={p.connection === 'connected' ? 'Connected' : 'Disconnected'}
+          >
             {p.connection === 'connected' ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
           </div>
         </nav>
@@ -255,6 +270,7 @@ export default function App() {
                   onChange={p.updateSetting}
                   onSaveFlash={p.saveToFlash}
                   hasChanges={p.settingsChanged}
+                  dirtySettings={p.dirtySettings}
                   hotkeyConfig={hotkeyConfig}
                   onUpdateHotkeyConfig={updateHotkeyConfig}
                   appConfig={appConfig}

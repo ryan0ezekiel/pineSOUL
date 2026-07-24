@@ -93,6 +93,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const [toasts, setToasts] = useState([]);
   const [tempHistory, setTempHistory] = useState([]);
   const [connectionError, setConnectionError] = useState(null);
+  const [dirtySettings, setDirtySettings] = useState(new Set());
 
   const pendingSettings = useRef({});
   const historyRef = useRef([]);
@@ -132,7 +133,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
         ...historyRef.current.slice(-(MAX_HISTORY - 1)),
         { timestamp: now, liveTemp: Math.round(baseTemp + noise), setTemp: 320, watts: 45 + Math.random() * 20 }
       ];
-      setTempHistory([...historyRef.current]);
+      // Don't update state here — the 800ms sync interval handles it
     }, pollingRate);
     return () => clearInterval(interval);
   }, [mock, pollingRate]);
@@ -176,6 +177,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       setSettings(s);
       setSettingsChanged(false);
       pendingSettings.current = {};
+      setDirtySettings(new Set());
     });
     if (unsub4) unsubs.push(unsub4);
 
@@ -198,10 +200,10 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       setTempHistory([]);
       return;
     }
-    const interval = setInterval(() => {
+    const syncInterval = setInterval(() => {
       setTempHistory([...historyRef.current]);
     }, 800);
-    return () => clearInterval(interval);
+    return () => clearInterval(syncInterval);
   }, [connection]);
 
   // Scanning
@@ -277,6 +279,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     setSettings(prev => ({ ...prev, [name]: value }));
     pendingSettings.current[name] = value;
     setSettingsChanged(true);
+    setDirtySettings(prev => new Set([...prev, name]));
   }, []);
 
   // Apply all pending settings
@@ -293,6 +296,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     }
     pendingSettings.current = {};
     setSettingsChanged(false);
+    setDirtySettings(new Set());
     return results;
   }, []);
 
@@ -422,6 +426,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     toasts,
     tempHistory,
     connectionError,
+    dirtySettings,
 
     // Derived
     mode,

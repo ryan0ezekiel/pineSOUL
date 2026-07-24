@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect, useId } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useId, memo } from 'react';
 import { motion } from 'framer-motion';
 
 // ── Cubic bezier interpolation ──────────────────────────────────────────
@@ -47,7 +47,7 @@ function generateTicks(maxVal) {
 }
 
 // ── Component ────────────────────────────────────────────────────────────
-export default function TemperatureGraph({
+export default memo(function TemperatureGraph({
   history = [],
   windowSeconds = 300, // 5 minutes
   formatTemp = (v) => Math.round(v),
@@ -179,7 +179,7 @@ export default function TemperatureGraph({
       <svg
         viewBox={`0 0 ${nomWidth} ${height}`}
         className="w-full h-full"
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
       >
         <defs>
           {/* Glow filter for current temp line */}
@@ -284,7 +284,20 @@ export default function TemperatureGraph({
             filter={`url(#${svgId}-tempGlow)`}
           />
         )}
+        {/* ── Empty state ──────────────────────────────────────── */}
+        {pathData === '' && areaData === '' && targetPathData === '' && (
+          <text
+            x={nomWidth / 2}
+            y={height / 2}
+            textAnchor="middle"
+            fill="#64748b"
+            fontSize="13"
+            fontFamily="Inter, system-ui, sans-serif"
+          >
+            Waiting for temperature data…
+          </text>
+        )}
       </svg>
     </motion.div>
   );
-}
+});

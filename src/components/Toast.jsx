@@ -48,7 +48,7 @@ export default function Toast({ toasts = [], onDismiss }) {
   }, [toasts]);
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 min-w-[280px] max-w-[380px] pointer-events-none">
+    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 min-w-[280px] max-w-[380px] pointer-events-none" role="log" aria-label="Notifications" aria-live="polite">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => {
           const config = TYPE_CONFIG[toast.type] || TYPE_CONFIG.info;
@@ -76,13 +76,14 @@ export default function Toast({ toasts = [], onDismiss }) {
               </div>
 
               {/* Message */}
-              <p className={`flex-1 text-sm leading-snug ${config.text}`}>
+              <p className={`flex-1 text-sm leading-snug ${config.text}`} role="alert">
                 {toast.message}
               </p>
 
               {/* Close button */}
               <button
                 onClick={() => onDismiss?.(toast.id)}
+                aria-label="Dismiss notification"
                 className="shrink-0 p-0.5 rounded-md opacity-40 hover:opacity-100 transition-opacity text-iron-400 hover:text-iron-200"
               >
                 <X size={14} strokeWidth={2} />
