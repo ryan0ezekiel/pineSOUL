@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 // ── Cubic bezier interpolation ──────────────────────────────────────────
@@ -20,47 +20,50 @@ function smoothPath(points, tension = 0.3) {
   return d;
 }
 
-// ── Temperature tick generator ───────────────────────────────────────────
-function niceMax(value) {
-  if (value <= 0) return 450;
-  const magnitude = 10 ** Math.floor(Math.log10(value));
-  const normalized = value / magnitude;
-  if (normalized <= 1) return magnitude;
-  if (normalized <= 2) return 2 * magnitude;
-  if (normalized <= 5) return 5 * magnitude;
-  return 10 * magnitude;
-}
-
-function generateTicks(yMax) {
-  const nice = niceMax(yMax);
-  const step = nice <= 100 ? 10 : nice <= 200 ? 20 : nice <= 500 ? 50 : 100;
-  const ticks = [];
-  for (let v = 0; v <= nice; v += step) {
-    ticks.push(v);
-  }
-  // always include 0 and max
-  if (ticks[ticks.length - 1] < nice) ticks.push(nice);
-  if (ticks[0] !== 0) ticks.unshift(0);
-  return { ticks, max: nice };
-}
-
-// ── Time label helpers ───────────────────────────────────────────────────
+// ── Time label formatting ───────────────────────────────────────────────
 function formatTimeLabel(secondsAgo) {
   if (secondsAgo === 0) return 'now';
+  if (secondsAgo < 60) return `${secondsAgo}s`;
   const m = Math.floor(secondsAgo / 60);
   const s = secondsAgo % 60;
-  if (m === 0 && s > 0) return `${s}s`;
-  if (s === 0) return `${m}m`;
-  return `${m}m ${s}s`;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+// ── Y-axis tick generation ──────────────────────────────────────────────
+function generateTicks(maxVal) {
+  if (maxVal <= 0) return { ticks: [0], max: 100 };
+  const rawStep = maxVal / 5;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const residual = rawStep / mag;
+  let niceStep;
+  if (residual <= 1.5) niceStep = 1 * mag;
+  else if (residual <= 3.5) niceStep = 2 * mag;
+  else if (residual <= 7.5) niceStep = 5 * mag;
+  else niceStep = 10 * mag;
+  const niceMax = Math.ceil(maxVal / niceStep) * niceStep;
+  const ticks = [];
+  for (let v = 0; v <= niceMax; v += niceStep) ticks.push(v);
+  return { ticks, max: niceMax };
 }
 
 // ── Component ────────────────────────────────────────────────────────────
 export default function TemperatureGraph({
   history = [],
   windowSeconds = 300, // 5 minutes
-  height = 200,
 }) {
-  const svgWidth = '100%';
+  const containerRef = useRef(null);
+  const [height, setHeight] = useState(200);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const h = entry.contentRect.height;
+      if (h > 0) setHeight(Math.round(h));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const {
     pathData,
@@ -75,7 +78,6 @@ export default function TemperatureGraph({
     top,
     plotWidth,
     plotHeight,
-    areaBottomRef,
   } = useMemo(() => {
     const padding = { top: 16, right: 16, bottom: 28, left: 48 };
     const pTop = padding.top;
@@ -83,9 +85,6 @@ export default function TemperatureGraph({
     const pBottom = padding.bottom;
     const pLeft = padding.left;
 
-    // We don't know the exact pixel width yet (responsive), but we compute
-    // proportional positions using a nominal width. The SVG viewBox and
-    // preserveAspectRatio handle the rest.
     const nomWidth = 600;
     const nomHeight = height;
     const plotW = nomWidth - pLeft - pRight;
@@ -101,7 +100,7 @@ export default function TemperatureGraph({
     const allTemps = sorted.flatMap((d) => [d.liveTemp ?? 0, d.setTemp ?? 0]);
     const dataMax = allTemps.length > 0 ? Math.max(...allTemps, 0) : 0;
     const { ticks: yTickValues, max: computedMax } = generateTicks(dataMax || 450);
-    const finalMax = Math.max(computedMax, dataMax, 1); // never divide by zero
+    const finalMax = Math.max(computedMax, dataMax, 1);
     const yScale = (v) => pTop + plotH - (v / finalMax) * plotH;
 
     // ── X scale ────────────────────────────────────────────────────────
@@ -132,7 +131,7 @@ export default function TemperatureGraph({
     // ── X-axis time labels ─────────────────────────────────────────────
     const labelIntervals = [];
     const totalSec = windowSeconds;
-    const stepSec = totalSec / 5; // 6 labels (including now)
+    const stepSec = totalSec / 5;
     for (let i = 0; i <= 5; i++) {
       const secAgo = totalSec - i * stepSec;
       labelIntervals.push({
@@ -160,25 +159,23 @@ export default function TemperatureGraph({
       top: pTop,
       plotWidth: plotW,
       plotHeight: plotH,
-      areaBottomRef: yScale(0),
     };
   }, [history, windowSeconds, height]);
 
-  // Compute SVG viewBox from nominal dimensions
   const nomWidth = 600;
 
   return (
     <motion.div
-      className="w-full"
+      ref={containerRef}
+      className="w-full h-full"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       <svg
         viewBox={`0 0 ${nomWidth} ${height}`}
-        className="w-full"
-        style={{ height }}
-        preserveAspectRatio="xMidYMid meet"
+        className="w-full h-full"
+        preserveAspectRatio="none"
       >
         <defs>
           {/* Glow filter for current temp line */}

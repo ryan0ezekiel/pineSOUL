@@ -147,7 +147,7 @@ export default function App() {
                           <span className="text-[11px] text-iron-500 uppercase tracking-wider font-medium">Temperature History</span>
                           <span className="text-[10px] text-iron-600">5 min</span>
                         </div>
-                        <div className="flex-1 min-h-0">
+                        <div className="flex-1 min-h-0 h-full">
                           <TemperatureGraph history={p.tempHistory} />
                         </div>
                       </div>
