@@ -17,7 +17,7 @@ const MOCK_LIVE_DATA = {
   HandleTemp: 324,    // 32.4°C (handle is cooler)
   PWMLevel: 64,
   PowerSource: 3,
-  TipResistance: 84,
+  TipResistance: 840,   // 8.4Ω (centiohms)
   Uptime: 1847000,
   MovementTime: 42000,
   MaxTipTempAbility: 4500, // 450°C
@@ -319,48 +319,6 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     liveDataRef.current = liveData;
   }, [liveData]);
 
-  // ─── Keyboard actions (stable refs, no re-registration) ────────────
-  const handleTempUp = useCallback((step) => {
-    const ld = liveDataRef.current;
-    const current = ld.SetTemp || 3200;
-    const stepVal = step || 10;
-    const newTemp = Math.min(current + stepVal, ld.MaxTipTempAbility || 4500);
-    updateSetting('SetTemperature', newTemp);
-    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
-    if (!mock && api) {
-      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
-    }
-  }, [updateSetting, mock]);
-
-  const handleTempDown = useCallback((step) => {
-    const ld = liveDataRef.current;
-    const current = ld.SetTemp || 3200;
-    const stepVal = step || 10;
-    const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
-    updateSetting('SetTemperature', newTemp);
-    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
-    if (!mock && api) {
-      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
-    }
-  }, [updateSetting, mock]);
-
-  const handleToggleMode = useCallback((targetTemp) => {
-    const ld = liveDataRef.current;
-    // 0.1°C: default target 3200=320°C, cooldown threshold 500=50°C, cooldown target 250=25°C
-    const toggleTarget = targetTemp || 3200;
-    if (ld.OperatingMode === 1 && ld.LiveTemp > 500) {
-      updateSetting('SetTemperature', 250);
-      setLiveData(prev => ({ ...prev, SetTemp: 250 }));
-      if (!mock && api) api.bleSetSetting('SetTemperature', 250).catch(() => {});
-      addToast('❄️ Cooling down...', 'info');
-    } else {
-      updateSetting('SetTemperature', toggleTarget);
-      setLiveData(prev => ({ ...prev, SetTemp: toggleTarget }));
-      if (!mock && api) api.bleSetSetting('SetTemperature', toggleTarget).catch(() => {});
-      addToast('🔥 Heating to ' + formatTemp(toggleTarget) + '°', 'success');
-    }
-  }, [updateSetting, mock, addToast, formatTemp]);
-
   // ─── Format helpers (memoized) ──────────────────────────
   const formatVoltage = useCallback((raw) => {
     if (raw === 0) return '--';
@@ -402,6 +360,48 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     }
     return Math.round(tempC);
   }, [settings.TemperatureUnit]);
+
+  // ─── Keyboard actions (stable refs, no re-registration) ────────────
+  const handleTempUp = useCallback((step) => {
+    const ld = liveDataRef.current;
+    const current = ld.SetTemp || 3200;
+    const stepVal = step || 10;
+    const newTemp = Math.min(current + stepVal, ld.MaxTipTempAbility || 4500);
+    updateSetting('SetTemperature', newTemp);
+    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
+    if (!mock && api) {
+      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
+    }
+  }, [updateSetting, mock]);
+
+  const handleTempDown = useCallback((step) => {
+    const ld = liveDataRef.current;
+    const current = ld.SetTemp || 3200;
+    const stepVal = step || 10;
+    const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
+    updateSetting('SetTemperature', newTemp);
+    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
+    if (!mock && api) {
+      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
+    }
+  }, [updateSetting, mock]);
+
+  const handleToggleMode = useCallback((targetTemp) => {
+    const ld = liveDataRef.current;
+    // 0.1°C: default target 3200=320°C, cooldown threshold 500=50°C, cooldown target 250=25°C
+    const toggleTarget = targetTemp || 3200;
+    if (ld.OperatingMode === 1 && ld.LiveTemp > 500) {
+      updateSetting('SetTemperature', 250);
+      setLiveData(prev => ({ ...prev, SetTemp: 250 }));
+      if (!mock && api) api.bleSetSetting('SetTemperature', 250).catch(() => {});
+      addToast('❄️ Cooling down...', 'info');
+    } else {
+      updateSetting('SetTemperature', toggleTarget);
+      setLiveData(prev => ({ ...prev, SetTemp: toggleTarget }));
+      if (!mock && api) api.bleSetSetting('SetTemperature', toggleTarget).catch(() => {});
+      addToast('🔥 Heating to ' + formatTemp(toggleTarget) + '°', 'success');
+    }
+  }, [updateSetting, mock, addToast, formatTemp]);
 
   const tempUnitLabel = settings.TemperatureUnit === 1 ? '°F' : '°C';
   const displayUnit = tempUnitLabel;

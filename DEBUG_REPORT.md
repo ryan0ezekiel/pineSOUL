@@ -1,11 +1,21 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Cycle 1 — v1.0.3  
-**Status:** 42 bugs fixed (30 original + 12 new), 0 critical remaining
+**Last Updated:** Cycle 2 — v1.0.4  
+**Status:** 45 bugs fixed (30 original + 15 new), 0 critical remaining
 
 ---
 
-## Fixed Bugs (This Cycle)
+## Cycle 2 Fixes (v1.0.4)
+
+| # | Severity | Bug | File | Fix |
+|---|----------|-----|------|-----|
+| 43 | **CRITICAL** | TDZ ReferenceError — `formatTemp` used in `handleToggleMode` dependency array (line 362) but declared AFTER it (line 397). Accessing `const` before declaration throws `ReferenceError` on every render. | `src/hooks/usePinecil.js:322-404` | Moved all format helper declarations above keyboard action declarations |
+| 44 | MEDIUM | Electron `VALUE_LIMITS` stale — temperature limits still in old °C scale (`SetTemperature: [10, 850]`) while PWA uses 0.1°C (`[100, 4500]`). Maintenance hazard and inconsistency. | `electron/ble/constants.js:116-152` | Synced all temperature VALUE_LIMITS to 0.1°C protocol values |
+| 45 | LOW | Mock `TipResistance: 84` displayed as 0.8Ω — unrealistic for a soldering iron tip | `src/hooks/usePinecil.js:20` | Changed to `840` (8.4Ω, realistic value) |
+
+---
+
+## Fixed Bugs (Previous Cycle)
 
 ### CRITICAL — PWA Protocol (Fixed)
 | # | Bug | File | Fix |

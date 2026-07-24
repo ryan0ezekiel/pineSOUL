@@ -114,8 +114,9 @@ const TEMP_LIMITS = {
 
 // ─── Setting Value Limits ────────────────────────────────────────────
 const VALUE_LIMITS = {
-  SetTemperature:        [10, 850],
-  SleepTemperature:      [10, 850],
+  // BLE protocol sends temps in 0.1°C (e.g. 100=10°C, 4500=450°C)
+  SetTemperature:        [100, 4500],   // 10–450°C
+  SleepTemperature:      [100, 3000],   // 10–300°C
   SleepTimeout:          [0, 15],
   DCInCutoff:            [0, 4],
   MinVolCell:            [24, 38],
@@ -136,12 +137,12 @@ const VALUE_LIMITS = {
   PowerPulseWait:        [1, 9],
   PowerPulseDuration:    [1, 9],
   VoltageCalibration:    [360, 900],
-  BoostTemperature:      [0, 850],
+  BoostTemperature:      [2500, 4500],  // 250–450°C
   CalibrationOffset:     [100, 2500],
   PowerLimit:            [0, 220],
   ReverseButtonTempChange: [0, 1],
-  TempChangeLongStep:    [5, 90],
-  TempChangeShortStep:   [1, 50],
+  TempChangeLongStep:    [10, 900],     // 1–90°C in 0.1°C steps
+  TempChangeShortStep:   [10, 500],     // 1–50°C in 0.1°C steps
   HallEffectSensitivity: [0, 9],
   Brightness:            [0, 101],
   LOGOTime:              [0, 5],
