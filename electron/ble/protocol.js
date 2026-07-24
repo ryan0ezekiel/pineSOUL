@@ -1,0 +1,110 @@
+// Pinecil V2 BLE Protocol Implementation
+// Handles encoding/decoding of BLE characteristics
+
+const {
+  SERVICES,
+  SETTINGS_V221,
+  SETTINGS_V220,
+  BULK_DATA_V221,
+  BULK_DATA_V220,
+  LIVE_DATA_FIELDS,
+} = require('./constants.js');
+
+class PinecilProtocol {
+  constructor() {
+    this.version = null;       // 'v220' | 'v221'
+    this.settingsUUID = null;
+    this.bulkDataUUID = null;
+    this.settingsMap = null;
+    this.bulkDataMap = null;
+  }
+
+  /**
+   * Detect firmware version by checking which service UUIDs exist
+   */
+  detectVersion(serviceUUIDs) {
+    if (serviceUUIDs.includes(SERVICES.SETTINGS_V221)) {
+      this.version = 'v221';
+      this.settingsUUID = SERVICES.SETTINGS_V221;
+      this.bulkDataUUID = SERVICES.BULK_DATA_V221;
+      this.settingsMap = SETTINGS_V221;
+      this.bulkDataMap = BULK_DATA_V221;
+      return '2.21+';
+    }
+    if (serviceUUIDs.includes(SERVICES.SETTINGS_V220)) {
+      this.version = 'v220';
+      this.settingsUUID = SERVICES.SETTINGS_V220;
+      this.bulkDataUUID = SERVICES.BULK_DATA_V220;
+      this.settingsMap = SETTINGS_V220;
+      this.bulkDataMap = BULK_DATA_V220;
+      return '2.20';
+    }
+    return null;
+  }
+
+  /**
+   * Parse the 56-byte BulkData into live values
+   * Format: 14 × uint32 little-endian
+   */
+  parseLiveData(buffer) {
+    if (!buffer || buffer.length < 56) return null;
+
+    const view = new DataView(buffer.buffer || new Uint8Array(buffer));
+    const values = {};
+    const numValues = Math.floor(buffer.length / 4);
+
+    for (let i = 0; i < Math.min(numValues, LIVE_DATA_FIELDS.length); i++) {
+      values[LIVE_DATA_FIELDS[i]] = view.getUint32(i * 4, true); // little-endian
+    }
+
+    return values;
+  }
+
+  /**
+   * Parse a setting value from a 2-byte buffer
+   */
+  parseSetting(buffer) {
+    if (!buffer || buffer.length < 2) return null;
+    const view = new DataView(buffer.buffer || new Uint8Array(buffer));
+    return view.getUint16(0, true); // little-endian uint16
+  }
+
+  /**
+   * Encode a setting value to a 2-byte buffer
+   */
+  encodeSetting(value) {
+    const buffer = Buffer.alloc(2);
+    buffer.writeUInt16LE(value, 0);
+    return buffer;
+  }
+
+  /**
+   * Find the characteristic UUID for a setting name
+   */
+  getSettingUUID(name) {
+    if (!this.settingsMap) return null;
+    for (const [uuid, settingName] of Object.entries(this.settingsMap)) {
+      if (settingName === name) return uuid;
+    }
+    return null;
+  }
+
+  /**
+   * Find the setting name for a characteristic UUID
+   */
+  getSettingName(uuid) {
+    if (!this.settingsMap) return uuid;
+    return this.settingsMap[uuid] || uuid;
+  }
+
+  /**
+   * Find the BulkData characteristic UUID
+   */
+  getBulkDataCharUUID() {
+    if (!this.bulkDataMap) return null;
+    const entry = Object.entries(this.bulkDataMap).find(([_, n]) => n === 'BulkData');
+    return entry ? entry[0] : null;
+  }
+}
+
+module.exports = { PinecilProtocol };

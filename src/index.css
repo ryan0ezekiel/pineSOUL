@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --heat-glow: 255, 107, 53;
+    --cool-glow: 56, 189, 248;
+    --sleep-glow: 129, 140, 248;
+    --ready-glow: 52, 211, 153;
+  }
+
+  body {
+    @apply bg-iron-950 text-iron-200 antialiased;
+    overflow: hidden;
+  }
+
+  /* Glass panels */
+  .glass {
+    @apply bg-iron-800/50 backdrop-blur-xl border border-iron-700/30 rounded-2xl;
+  }
+  .glass-strong {
+    @apply bg-iron-800/70 backdrop-blur-2xl border border-iron-700/40 rounded-2xl;
+  }
+  .glass-subtle {
+    @apply bg-iron-900/40 backdrop-blur-lg border border-iron-700/20 rounded-xl;
+  }
+
+  /* Glow effects */
+  .glow-heat {
+    box-shadow: 0 0 60px -10px rgba(255, 107, 53, 0.3),
+                0 0 120px -20px rgba(255, 107, 53, 0.15);
+  }
+  .glow-cool {
+    box-shadow: 0 0 60px -10px rgba(56, 189, 248, 0.3),
+                0 0 120px -20px rgba(56, 189, 248, 0.15);
+  }
+  .glow-sleep {
+    box-shadow: 0 0 60px -10px rgba(129, 140, 248, 0.3),
+                0 0 120px -20px rgba(129, 140, 248, 0.15);
+  }
+  .glow-ready {
+    box-shadow: 0 0 60px -10px rgba(52, 211, 153, 0.3),
+                0 0 120px -20px rgba(52, 211, 153, 0.15);
+  }
+
+  /* Title bar */
+  .titlebar {
+    -webkit-app-region: drag;
+    @apply h-8 flex items-center justify-between px-4 text-xs text-iron-500;
+  }
+  .titlebar-btn {
+    -webkit-app-region: no-drag;
+    @apply p-1 rounded-md hover:bg-iron-700/50 text-iron-400 hover:text-iron-200 transition-colors;
+  }
+
+  /* Temperature dial animations */
+  @keyframes dial-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  .dial-pulse {
+    animation: dial-pulse 2s ease-in-out infinite;
+  }
+
+  /* Scrollbar for settings */
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.3) transparent;
+  }
+  .scroll-slim::-webkit-scrollbar { width: 4px; }
+  .scroll-slim::-webkit-scrollbar-track { background: transparent; }
+  .scroll-slim::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.3);
+    border-radius: 2px;
+  }
+}
+
+/* Background gradient */
+.bg-mesh {
+  background-image:
+    radial-gradient(at 20% 80%, rgba(245, 158, 11, 0.04) 0px, transparent 50%),
+    radial-gradient(at 80% 20%, rgba(56, 189, 248, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(129, 140, 248, 0.02) 0px, transparent 50%);
+}
+
+/* Ring glow animation */
+@keyframes ring-glow {
+  0% { filter: blur(0px); opacity: 0.8; }
+  50% { filter: blur(1px); opacity: 1; }
+  100% { filter: blur(0px); opacity: 0.8; }
+}
