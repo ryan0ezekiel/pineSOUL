@@ -155,16 +155,17 @@ function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHot
   if (!group) return null;
   const Icon = group.icon;
 
+  const isSpecialGroup = groupKey === 'hotkeys' || groupKey === 'app';
   const isHotkeyGroup = groupKey === 'hotkeys';
   const isAppGroup = groupKey === 'app';
 
-  const groupSettings = !isHotkeyGroup
+  const groupSettings = !isSpecialGroup
     ? Object.entries(SETTING_META)
         .filter(([_, m]) => m.group === groupKey && !HIDDEN_SETTINGS.has(_))
         .map(([name, meta]) => ({ name, meta }))
     : [];
 
-  if (groupSettings.length === 0 && !isHotkeyGroup) return null;
+  if (groupSettings.length === 0 && !isSpecialGroup) return null;
 
   return (
     <div className="glass-subtle overflow-hidden">
@@ -175,7 +176,7 @@ function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHot
         <div className="flex items-center gap-2.5">
           <Icon className={`w-4 h-4 ${group.color}`} />
           <span className="text-sm font-medium text-iron-200">{group.label}</span>
-          {!isHotkeyGroup && (
+          {!isSpecialGroup && (
             <span className="text-[10px] text-iron-500">{groupSettings.length} settings</span>
           )}
         </div>

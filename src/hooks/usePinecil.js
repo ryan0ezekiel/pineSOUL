@@ -80,13 +80,10 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const historyRef = useRef([]);
   const listenersRef = useRef([]);
 
-  // Toast helper
+  // Toast helper — just adds, Toast component handles auto-dismiss
   const addToast = useCallback((message, type = 'error') => {
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3000);
   }, []);
 
   const removeToast = useCallback((id) => {
@@ -354,8 +351,12 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   }, []);
 
   const formatHandleTemp = useCallback((raw) => {
-    return (raw / 10).toFixed(0);
-  }, []);
+    const tempC = (raw / 10);
+    if (settings.TemperatureUnit === 1) {
+      return Math.round(tempC * 9/5 + 32);
+    }
+    return Math.round(tempC);
+  }, [settings.TemperatureUnit]);
 
   const formatTipRes = useCallback((raw) => {
     if (!raw || raw === 0) return '--';

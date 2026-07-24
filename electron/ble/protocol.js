@@ -49,7 +49,10 @@ class PinecilProtocol {
   parseLiveData(buffer) {
     if (!buffer || buffer.length < 56) return null;
 
-    const view = new DataView(buffer.buffer || new Uint8Array(buffer));
+    // Handle Node.js Buffer: create DataView from the actual buffer content,
+    // not the underlying ArrayBuffer (which may have offset/size mismatch)
+    const raw = new Uint8Array(buffer);
+    const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     const values = {};
     const numValues = Math.floor(buffer.length / 4);
 
@@ -65,7 +68,8 @@ class PinecilProtocol {
    */
   parseSetting(buffer) {
     if (!buffer || buffer.length < 2) return null;
-    const view = new DataView(buffer.buffer || new Uint8Array(buffer));
+    const raw = new Uint8Array(buffer);
+    const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     return view.getUint16(0, true); // little-endian uint16
   }
 

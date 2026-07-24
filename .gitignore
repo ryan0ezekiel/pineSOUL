@@ -2,6 +2,7 @@ node_modules/
 dist/
 release/
 *.png
+!build/*.png
 !docs/*.png
 .env
 .DS_Store

@@ -37,6 +37,7 @@
       ],
       "category": "Utility",
       "icon": "build/icon.png",
+      "artifactName": "${productName}-${version}.${ext}",
       "desktop": {
         "Name": "pineSOUL",
         "Comment": "Modern Pinecil V2 soldering iron controller",
