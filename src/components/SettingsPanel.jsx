@@ -336,7 +336,7 @@ function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyCon
                     value={settings[name]}
                     meta={meta}
                     onChange={onChange}
-                    isDirty={dirtySettings?.has(name)}
+                    isDirty={pendingChanges?.has(name)}
                   />
                 ))
               )}
