@@ -97,6 +97,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const pendingSettings = useRef({});
   const historyRef = useRef([]);
   const listenersRef = useRef([]);
+  const liveDataRef = useRef({ SetTemp: 320, MaxTipTempAbility: 450, OperatingMode: 0, LiveTemp: 25 });
 
   // Toast helper — just adds, Toast component handles auto-dismiss
   const addToast = useCallback((message, type = 'error') => {
@@ -308,22 +309,27 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     }
   }, [applySettings, addToast]);
 
-  // ─── Keyboard actions ────────────────────────────────
+  // Keep liveDataRef in sync for keyboard handlers (avoids re-creating callbacks on every live data update)
+  useEffect(() => {
+    liveDataRef.current = liveData;
+  }, [liveData]);
+
+  // ─── Keyboard actions (stable refs, no re-registration) ────────────
   const handleTempUp = useCallback((step) => {
-    const current = liveData.SetTemp || 320;
+    const ld = liveDataRef.current;
+    const current = ld.SetTemp || 320;
     const stepVal = step || 10;
-    const newTemp = Math.min(current + stepVal, liveData.MaxTipTempAbility || 450);
+    const newTemp = Math.min(current + stepVal, ld.MaxTipTempAbility || 450);
     updateSetting('SetTemperature', newTemp);
-    // Optimistically update SetTemp in liveData
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
-    // Send immediately if connected
     if (!mock && api) {
       api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
     }
-  }, [liveData.SetTemp, liveData.MaxTipTempAbility, updateSetting, mock]);
+  }, [updateSetting, mock]);
 
   const handleTempDown = useCallback((step) => {
-    const current = liveData.SetTemp || 320;
+    const ld = liveDataRef.current;
+    const current = ld.SetTemp || 320;
     const stepVal = step || 10;
     const newTemp = Math.max(current - stepVal, 10);
     updateSetting('SetTemperature', newTemp);
@@ -331,26 +337,23 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     if (!mock && api) {
       api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
     }
-  }, [liveData.SetTemp, updateSetting, mock]);
+  }, [updateSetting, mock]);
 
   const handleToggleMode = useCallback((targetTemp) => {
+    const ld = liveDataRef.current;
     const toggleTarget = targetTemp || 200;
-    // If currently hot (mode 1, temp > 50), go cold
-    // If currently cold, go to target
-    if (liveData.OperatingMode === 1 && liveData.LiveTemp > 50) {
-      // Go to cold/standby
+    if (ld.OperatingMode === 1 && ld.LiveTemp > 50) {
       updateSetting('SetTemperature', 25);
       setLiveData(prev => ({ ...prev, SetTemp: 25 }));
       if (!mock && api) api.bleSetSetting('SetTemperature', 25).catch(() => {});
       addToast('❄️ Cooling down...', 'info');
     } else {
-      // Go to target hot temperature
       updateSetting('SetTemperature', toggleTarget);
       setLiveData(prev => ({ ...prev, SetTemp: toggleTarget }));
       if (!mock && api) api.bleSetSetting('SetTemperature', toggleTarget).catch(() => {});
       addToast('🔥 Heating to ' + toggleTarget + '°', 'success');
     }
-  }, [liveData.OperatingMode, liveData.LiveTemp, updateSetting, mock, addToast]);
+  }, [updateSetting, mock, addToast]);
 
   // ─── Format helpers (memoized) ──────────────────────────
   const formatVoltage = useCallback((raw) => {

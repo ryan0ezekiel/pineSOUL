@@ -111,6 +111,12 @@ export class WebBleAdapter {
     try {
       this.#emit('connectionChange', { status: 'connecting' });
 
+      // Clean up old notification handlers before reconnecting
+      if (this.#bulkDataChar && this.#bulkDataChar._pwaHandler) {
+        this.#bulkDataChar.removeEventListener('characteristicvaluechanged', this.#bulkDataChar._pwaHandler);
+        this.#bulkDataChar._pwaHandler = null;
+      }
+
       // Disconnect existing GATT connection if any
       if (this.#device?.gatt?.connected) {
         this.#device.gatt.disconnect();
