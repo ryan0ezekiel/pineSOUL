@@ -29,8 +29,9 @@ export function detectVersion(serviceUUIDs) {
 
 // ─── Live Data Parser (56 bytes = 14 × uint32 LE) ──────────────────
 export function parseLiveData(buffer) {
-  if (!buffer || buffer.byteLength < 56) return null;
-  const raw = new Uint8Array(buffer);
+  // Accept both ArrayBuffer and Uint8Array (fixes offset bug with Web Bluetooth)
+  const raw = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  if (!raw || raw.byteLength < 56) return null;
   const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
   const fields = LIVE_DATA_FIELDS;
   const values = {};
@@ -42,8 +43,9 @@ export function parseLiveData(buffer) {
 
 // ─── Setting Parser (2 bytes = uint16 LE) ───────────────────────────
 export function parseSetting(buffer, version) {
-  if (!buffer || buffer.byteLength < 2) return null;
-  const raw = new Uint8Array(buffer);
+  // Accept both ArrayBuffer and Uint8Array (fixes offset bug with Web Bluetooth)
+  const raw = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  if (!raw || raw.byteLength < 2) return null;
   const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
   const value = view.getUint16(0, true);
   const mapped = (value >> 8) & 0x7f;

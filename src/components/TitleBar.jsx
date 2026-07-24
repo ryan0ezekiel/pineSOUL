@@ -12,10 +12,12 @@ function InstallButton() {
       e.preventDefault();
       setDeferredPrompt(e);
     };
+    const installedHandler = () => setInstalled(true);
     window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => setInstalled(true));
+    window.addEventListener('appinstalled', installedHandler);
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
     };
   }, []);
 

@@ -27,20 +27,38 @@ const MOCK_LIVE_DATA = {
 };
 
 const MOCK_SETTINGS = {
-  TemperatureUnit: 0,  // °C by default
-  SolderingTemp: 320,
-  BoostTemp: 400,
-  AutoStart: 0,
-  SleepTemp: 150,
-  SleepDelay: 600,
-  StandbyTemp: 25,
-  StandbyTimeout: 0,
+  SetTemperature: 320,
+  BoostTemperature: 400,
+  SleepTemperature: 150,
+  SleepTimeout: 6,
   ShutdownTimeout: 60,
+  AutoStart: 0,
   MotionSensitivity: 5,
-  DisplayBrightness: 60,
-  TempUnit: 1,
-  AutoOff: 1,
+  LockingMode: 0,
+  TemperatureUnit: 0,  // °C by default
+  DisplayRotation: 0,
+  Brightness: 80,
+  ColourInversion: 0,
+  AnimSpeed: 2,
+  AnimLoop: 1,
+  CooldownBlink: 1,
+  ScrollingSpeed: 1,
+  AdvancedIdle: 0,
+  AdvancedSoldering: 0,
+  PowerLimit: 60,
+  DCInCutoff: 0,
+  MinVolCell: 30,
+  QCMaxVoltage: 120,
+  PowerPulsePower: 10,
+  PowerPulseWait: 3,
+  PowerPulseDuration: 3,
+  TempChangeShortStep: 10,
+  TempChangeLongStep: 50,
+  ReverseButtonTempChange: 0,
   HallEffectSensitivity: 6,
+  BLEEnabled: 1,
+  LOGOTime: 1,
+  PDNegTimeout: 10,
 };
 
 const DEFAULT_LIVE_DATA = {
@@ -295,12 +313,12 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     const current = liveData.SetTemp || 320;
     const stepVal = step || 10;
     const newTemp = Math.min(current + stepVal, liveData.MaxTipTempAbility || 450);
-    updateSetting('SolderingTemp', newTemp);
+    updateSetting('SetTemperature', newTemp);
     // Optimistically update SetTemp in liveData
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
     // Send immediately if connected
     if (!mock && api) {
-      api.bleSetSetting('SolderingTemp', newTemp).catch(() => {});
+      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
     }
   }, [liveData.SetTemp, liveData.MaxTipTempAbility, updateSetting, mock]);
 
@@ -308,10 +326,10 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     const current = liveData.SetTemp || 320;
     const stepVal = step || 10;
     const newTemp = Math.max(current - stepVal, 10);
-    updateSetting('SolderingTemp', newTemp);
+    updateSetting('SetTemperature', newTemp);
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
     if (!mock && api) {
-      api.bleSetSetting('SolderingTemp', newTemp).catch(() => {});
+      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
     }
   }, [liveData.SetTemp, updateSetting, mock]);
 
@@ -321,15 +339,15 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     // If currently cold, go to target
     if (liveData.OperatingMode === 1 && liveData.LiveTemp > 50) {
       // Go to cold/standby
-      updateSetting('SolderingTemp', 25);
+      updateSetting('SetTemperature', 25);
       setLiveData(prev => ({ ...prev, SetTemp: 25 }));
-      if (!mock && api) api.bleSetSetting('SolderingTemp', 25).catch(() => {});
+      if (!mock && api) api.bleSetSetting('SetTemperature', 25).catch(() => {});
       addToast('❄️ Cooling down...', 'info');
     } else {
       // Go to target hot temperature
-      updateSetting('SolderingTemp', toggleTarget);
+      updateSetting('SetTemperature', toggleTarget);
       setLiveData(prev => ({ ...prev, SetTemp: toggleTarget }));
-      if (!mock && api) api.bleSetSetting('SolderingTemp', toggleTarget).catch(() => {});
+      if (!mock && api) api.bleSetSetting('SetTemperature', toggleTarget).catch(() => {});
       addToast('🔥 Heating to ' + toggleTarget + '°', 'success');
     }
   }, [liveData.OperatingMode, liveData.LiveTemp, updateSetting, mock, addToast]);

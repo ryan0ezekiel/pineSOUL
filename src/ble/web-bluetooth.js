@@ -68,6 +68,11 @@ export class WebBleAdapter {
         ],
       });
 
+      // Remove previous disconnect listener to prevent accumulation
+      if (this.#device && this._disconnectHandler) {
+        this.#device.removeEventListener('gattserverdisconnected', this._disconnectHandler);
+      }
+
       this.#device = device;
 
       this.#emit('deviceFound', {
@@ -75,7 +80,8 @@ export class WebBleAdapter {
         address: device.id,
       });
 
-      device.addEventListener('gattserverdisconnected', () => this.#handleDisconnect());
+      this._disconnectHandler = () => this.#handleDisconnect();
+      device.addEventListener('gattserverdisconnected', this._disconnectHandler);
 
       // Auto-connect after browser picker
       await this.#doConnect();
@@ -176,7 +182,10 @@ export class WebBleAdapter {
       );
       if (!bulkUUID) return;
 
-      const bulkService = await this.#server.getPrimaryService(SERVICES.BULK_DATA_V221);
+      const bulkServiceUUID = this.#version === 'v2.21'
+        ? SERVICES.BULK_DATA_V221
+        : SERVICES.BULK_DATA_V220;
+      const bulkService = await this.#server.getPrimaryService(bulkServiceUUID);
       this.#bulkDataChar = await bulkService.getCharacteristic(bulkUUID);
 
       await this.#bulkDataChar.startNotifications();
@@ -184,7 +193,7 @@ export class WebBleAdapter {
       const handler = (event) => {
         const dv = event.target.value;
         const raw = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
-        const data = parseLiveData(raw.buffer);
+        const data = parseLiveData(raw);
         if (data) this.#emit('liveData', data);
       };
 
@@ -219,7 +228,7 @@ export class WebBleAdapter {
             const char = await settingsService.getCharacteristic(uuid);
             const value = await char.readValue();
             const raw = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-            return { name, value: parseSetting(raw.buffer, this.#version), char };
+            return { name, value: parseSetting(raw, this.#version), char };
           } catch (e) {
             return { name, value: null, char: null };
           }
@@ -307,6 +316,23 @@ export class WebBleAdapter {
       return { ok: false, error: e.message || String(e) };
     }
   }
+
+  // ── removeAllListeners (for API completeness with preload.js) ──────
+  removeAllListeners(channel) {
+    const eventMap = {
+      'ble:liveData': 'liveData',
+      'ble:connectionChange': 'connectionChange',
+      'ble:deviceFound': 'deviceFound',
+      'ble:settingsLoaded': 'settingsLoaded',
+      'ble:error': 'error',
+    };
+    const event = eventMap[channel];
+    if (event) this.#listeners[event] = [];
+  }
+
+  // ── bleGetLiveData / bleGetSettings (no-ops, PWA uses notifications) ──
+  bleGetLiveData() { return null; }
+  bleGetSettings() { return null; }
 
   // ── Window controls (no-ops for PWA) ───────────────────────────────
   minimize() {}

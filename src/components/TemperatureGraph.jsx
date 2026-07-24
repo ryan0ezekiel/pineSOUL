@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useId } from 'react';
 import { motion } from 'framer-motion';
 
 // ── Cubic bezier interpolation ──────────────────────────────────────────
@@ -53,6 +53,7 @@ export default function TemperatureGraph({
   formatTemp = (v) => Math.round(v),
   displayUnit = '°C',
 }) {
+  const svgId = useId();
   const containerRef = useRef(null);
   const [height, setHeight] = useState(200);
 
@@ -105,10 +106,11 @@ export default function TemperatureGraph({
     const finalMax = Math.max(computedMax, dataMax, 1);
     const yScale = (v) => pTop + plotH - (v / finalMax) * plotH;
 
-    // ── X scale ────────────────────────────────────────────────────────
+    // ── X scale ────────────────────────────────────────────────────
     const timeEnd = sorted.length > 0 ? sorted[sorted.length - 1].timestamp : now;
     const timeStart = timeEnd - windowSeconds * 1000;
-    const xScale = (t) => pLeft + ((t - timeStart) / (timeEnd - timeStart)) * plotW;
+    const timeRange = timeEnd - timeStart || 1; // avoid div-by-zero with single point
+    const xScale = (t) => pLeft + ((t - timeStart) / timeRange) * plotW;
 
     // ── Build points ───────────────────────────────────────────────────
     const tempPoints = sorted
@@ -181,7 +183,7 @@ export default function TemperatureGraph({
       >
         <defs>
           {/* Glow filter for current temp line */}
-          <filter id="tempGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <filter id={`${svgId}-tempGlow`} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="2.5" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -190,7 +192,7 @@ export default function TemperatureGraph({
           </filter>
 
           {/* Area gradient under temp line */}
-          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`${svgId}-areaGrad`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#ff6b35" stopOpacity="0.25" />
             <stop offset="100%" stopColor="#ff6b35" stopOpacity="0.02" />
           </linearGradient>
@@ -252,7 +254,7 @@ export default function TemperatureGraph({
         {areaData && (
           <path
             d={areaData}
-            fill="url(#areaGrad)"
+            fill={`url(#${svgId}-areaGrad)`}
           />
         )}
 
@@ -279,7 +281,7 @@ export default function TemperatureGraph({
             strokeWidth={2.5}
             strokeLinecap="round"
             strokeLinejoin="round"
-            filter="url(#tempGlow)"
+            filter={`url(#${svgId}-tempGlow)`}
           />
         )}
       </svg>

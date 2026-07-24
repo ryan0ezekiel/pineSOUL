@@ -88,8 +88,8 @@ export default function App() {
       // Ignore modifiers
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-      const key = e.key === hc.toggleMode || e.code === hc.toggleMode ? hc.toggleMode : e.key;
       const hc = hotkeyConfig;
+      const key = e.key === hc.toggleMode || e.code === hc.toggleMode ? hc.toggleMode : e.key;
 
       if (key === hc.tempUp) {
         e.preventDefault();
