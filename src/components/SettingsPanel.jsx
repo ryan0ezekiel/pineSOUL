@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Flame, Moon, Power, Monitor, Settings2,
+  Flame, Moon, Power, Monitor, Settings2, Cpu,
   Save, ChevronDown, Minus, Plus, Keyboard, Gauge, Clock
 } from 'lucide-react';
 import { SETTING_META, VALUE_LIMITS } from '../constants.js';
@@ -9,6 +9,7 @@ import { SETTING_META, VALUE_LIMITS } from '../constants.js';
 const GROUPS = {
   soldering: { label: 'Soldering', icon: Flame, color: 'text-orange-400' },
   sleep:     { label: 'Sleep',     icon: Moon,   color: 'text-indigo-400' },
+  device:    { label: 'Device',    icon: Cpu,    color: 'text-sky-400' },
   power:     { label: 'Power',     icon: Power,  color: 'text-blue-400' },
   display:   { label: 'Display',   icon: Monitor, color: 'text-amber-400' },
   hotkeys:   { label: 'Shortcuts', icon: Keyboard, color: 'text-soul-400' },

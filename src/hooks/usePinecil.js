@@ -126,7 +126,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     if (!mock) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      const baseTemp = 310 + Math.sin(Date.now() / 5000) * 15;
+      const baseTemp = 310 + Math.sin(now / 5000) * 15;
       const noise = (Math.random() - 0.5) * 8;
       historyRef.current = [
         ...historyRef.current.slice(-(MAX_HISTORY - 1)),

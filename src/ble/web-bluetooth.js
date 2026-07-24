@@ -101,8 +101,12 @@ export class WebBleAdapter {
   // ── Connect (reconnect to previously scanned device) ──────────────
   async bleConnect(address) {
     if (this.#device) {
-      await this.#doConnect();
-      return { ok: true };
+      try {
+        await this.#doConnect();
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: e.message || String(e) };
+      }
     }
     return { ok: false, error: 'No device selected. Click Scan first.' };
   }
