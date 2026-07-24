@@ -26,6 +26,8 @@ function StatCard({ icon: Icon, label, value, unit, color = 'text-iron-300', del
 
 export default function LiveDataPanel({
   liveData,
+  formatTemp,
+  displayUnit,
   formatVoltage,
   formatUptime,
   formatHandleTemp,
@@ -33,7 +35,7 @@ export default function LiveDataPanel({
   formatPowerSource,
 }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
       <StatCard
         icon={Zap}
         label="Voltage"
@@ -61,7 +63,7 @@ export default function LiveDataPanel({
         icon={Thermometer}
         label="Handle"
         value={formatHandleTemp(liveData.HandleTemp)}
-        unit="°C"
+        unit={displayUnit || '°C'}
         color="text-iron-200"
         delay={0.2}
       />

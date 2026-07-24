@@ -16,16 +16,18 @@ function DeviceCard({ device, onConnect }) {
         </div>
         <div>
           <div className="text-sm font-medium text-iron-200">{device.name || 'Pinecil'}</div>
-          <div className="text-[11px] text-iron-500 font-mono">{device.address}</div>
+          <div className="text-[11px] text-iron-500 font-mono">{device.address || device.id}</div>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <div className="text-right">
-          <div className="flex items-center gap-1 text-iron-500">
-            <Signal className="w-3 h-3" />
-            <span className="text-[11px] font-mono">{device.rssi} dBm</span>
+        {device.rssi != null && (
+          <div className="text-right">
+            <div className="flex items-center gap-1 text-iron-500">
+              <Signal className="w-3 h-3" />
+              <span className="text-[11px] font-mono">{device.rssi} dBm</span>
+            </div>
           </div>
-        </div>
+        )}
         <div className="w-8 h-8 rounded-lg bg-soul-500/10 group-hover:bg-soul-500/20 flex items-center justify-center transition-colors">
           <Link2 className="w-4 h-4 text-soul-400" />
         </div>
@@ -34,10 +36,9 @@ function DeviceCard({ device, onConnect }) {
   );
 }
 
-export default function ConnectionPanel({ connection, devices, scanning, onScan, onConnect, onDisconnect, deviceInfo }) {
+export default function ConnectionPanel({ connection, devices, scanning, deviceInfo, onScan, onConnect, onDisconnect, connectionError }) {
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="px-4 py-4 border-b border-iron-800/50">
         <h3 className="text-sm font-semibold text-iron-300 uppercase tracking-wider mb-3">Connection</h3>
 
@@ -59,33 +60,37 @@ export default function ConnectionPanel({ connection, devices, scanning, onScan,
             </button>
           </div>
         ) : (
-          <button
-            onClick={onScan}
-            disabled={scanning}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-soul-500/15 hover:bg-soul-500/25 text-soul-400 text-sm font-medium rounded-xl border border-soul-500/30 transition-all disabled:opacity-50"
-          >
-            {scanning ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Scanning…
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4" />
-                Scan for devices
-              </>
+          <div className="space-y-2">
+            <button
+              onClick={onScan}
+              disabled={scanning}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-soul-500/15 hover:bg-soul-500/25 text-soul-400 text-sm font-medium rounded-xl border border-soul-500/30 transition-all disabled:opacity-50"
+            >
+              {scanning ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Scanning…
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  Scan for devices
+                </>
+              )}
+            </button>
+            {connectionError && (
+              <p className="text-xs text-red-400 text-center">{connectionError}</p>
             )}
-          </button>
+          </div>
         )}
       </div>
 
-      {/* Device list */}
       <div className="flex-1 overflow-y-auto scroll-slim p-3 space-y-2">
         <AnimatePresence>
           {devices.length > 0 ? (
             devices.map(device => (
               <DeviceCard
-                key={device.address}
+                key={device.address || device.id}
                 device={device}
                 onConnect={connection === 'connected' ? () => {} : onConnect}
               />

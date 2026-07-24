@@ -11,7 +11,7 @@ try {
 const { PinecilProtocol } = require('./protocol.js');
 
 class BleManager {
-  constructor() {
+  constructor(options = {}) {
     this.protocol = new PinecilProtocol();
     this.device = null;
     this.connected = false;
@@ -20,8 +20,12 @@ class BleManager {
     this.bulkDataCharacteristic = null;
     this.deviceInfoCharacteristic = null;
     this.liveDataInterval = null;
+    this._scanTimeout = null;
     this.window = null;
     this.deviceInfo = { id: '', build: '', name: '' };
+    this._lastLiveData = null;
+    this._lastSettings = null;
+    this._pollingInterval = options.pollingInterval || 500;
 
     // Bind noble events
     if (noble) {
@@ -43,6 +47,22 @@ class BleManager {
     }
   }
 
+  /**
+   * Get the last live data reading
+   * @returns {Object|null} Parsed live data values or null
+   */
+  getLiveData() {
+    return this._lastLiveData;
+  }
+
+  /**
+   * Get the last loaded settings
+   * @returns {Object|null} Settings key-value map or null
+   */
+  getSettings() {
+    return this._lastSettings;
+  }
+
   setWindow(win) {
     this.window = win;
   }
@@ -55,20 +75,27 @@ class BleManager {
 
   async scan() {
     if (!noble) throw new Error('BLE not available');
-    
+
+    // Clear any pending scan timeout
+    if (this._scanTimeout) {
+      clearTimeout(this._scanTimeout);
+      this._scanTimeout = null;
+    }
+
     this.scanning = true;
     this._emit('scanning', true);
-    
+
     // Stop any previous scan
     try { noble.stopScanning(); } catch (e) {}
-    
+
     // Start scanning for BLE devices
     await noble.startScanningAsync([], false);
-    
+
     // Auto-stop after 10 seconds
-    setTimeout(() => {
+    this._scanTimeout = setTimeout(() => {
       noble.stopScanning();
       this.scanning = false;
+      this._scanTimeout = null;
       this._emit('scanning', false);
     }, 10000);
   }
@@ -78,70 +105,124 @@ class BleManager {
 
     this._emit('connectionChange', { status: 'connecting', address });
 
-    // Find the peripheral
-    const peripheral = await noble.findPeripheralAsync(address);
-    if (!peripheral) throw new Error(`Device not found: ${address}`);
-
-    // Connect
-    await peripheral.connectAsync();
-    this.device = peripheral;
-
-    // Discover services
-    const { characteristics } = await peripheral.discoverSomeServicesAndCharacteristicsAsync([], []);
-
-    // Detect firmware version
-    const serviceUUIDs = peripheral.services?.map(s => s.uuid) || [];
-    const version = this.protocol.detectVersion(serviceUUIDs);
-
-    if (!version) {
-      throw new Error('Unrecognized Pinecil firmware — could not detect BLE services');
-    }
-
-    // Find settings characteristics
-    this.settingsCharacteristics = [];
-    this.bulkDataCharacteristic = null;
-
-    for (const char of (characteristics || [])) {
-      const uuid = char.uuid;
-
-      // Check if it's a settings characteristic
-      if (this.protocol.getSettingName(uuid) !== uuid) {
-        this.settingsCharacteristics.push(char);
+    try {
+      // Find the peripheral
+      const peripheral = await noble.findPeripheralAsync(address);
+      if (!peripheral) {
+        const err = new Error(`Device not found: ${address}`);
+        this._emit('error', { type: 'connection', message: err.message, address });
+        throw err;
       }
 
-      // Check if it's the BulkData characteristic
-      const bulkDataUUID = this.protocol.getBulkDataCharUUID();
-      if (bulkDataUUID && uuid === bulkDataUUID) {
-        this.bulkDataCharacteristic = char;
+      // Connect
+      await peripheral.connectAsync();
+      this.device = peripheral;
+
+      // Discover services
+      const { characteristics } = await peripheral.discoverSomeServicesAndCharacteristicsAsync([], []);
+
+      // Detect firmware version
+      const serviceUUIDs = peripheral.services?.map(s => s.uuid) || [];
+      const version = this.protocol.detectVersion(serviceUUIDs);
+
+      if (!version) {
+        const err = new Error('Unrecognized Pinecil firmware — could not detect BLE services');
+        this._emit('error', { type: 'firmware', message: err.message, address });
+        throw err;
+      }
+
+      // Find settings characteristics
+      this.settingsCharacteristics = [];
+      this.bulkDataCharacteristic = null;
+
+      for (const char of (characteristics || [])) {
+        const uuid = char.uuid;
+
+        // Check if it's a settings characteristic
+        if (this.protocol.getSettingName(uuid) !== uuid) {
+          this.settingsCharacteristics.push(char);
+        }
+
+        // Check if it's the BulkData characteristic
+        const bulkDataUUID = this.protocol.getBulkDataCharUUID();
+        if (bulkDataUUID && uuid === bulkDataUUID) {
+          this.bulkDataCharacteristic = char;
+        }
+      }
+
+      // Get device info
+      this.deviceInfo = {
+        name: peripheral.advertisement?.localName || `Pinecil-${address}`,
+        address: address,
+        build: version,
+        rssi: peripheral.rssi,
+      };
+
+      this.connected = true;
+      this._emit('connectionChange', {
+        status: 'connected',
+        address,
+        deviceInfo: this.deviceInfo,
+      });
+
+      // Start live data polling
+      this._startLiveData();
+
+      // Load settings
+      await this._loadSettings();
+
+      return this.deviceInfo;
+    } catch (e) {
+      // Emit 'error' for connection failures (avoid double-emit for cases
+      // already handled above like device-not-found and firmware detection)
+      if (e.message && !e.message.startsWith('Device not found') && !e.message.includes('firmware')) {
+        this._emit('error', { type: 'connection', message: e.message, address });
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Attempt to reconnect to a device with retries
+   * @param {string} address - BLE device address
+   * @param {number} [attempts=3] - Maximum number of retry attempts
+   * @param {number} [delayMs=2000] - Delay between attempts in milliseconds
+   * @returns {Promise<Object>} Device info
+   */
+  async reconnect(address, attempts = 3, delayMs = 2000) {
+    let lastError;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        // Disconnect first if still connected from a previous attempt
+        if (this.device || this.connected) {
+          await this.disconnect();
+        }
+        return await this.connect(address);
+      } catch (e) {
+        lastError = e;
+        console.warn(`Reconnect attempt ${attempt}/${attempts} failed for ${address}:`, e.message);
+        if (attempt < attempts) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
       }
     }
 
-    // Get device info
-    this.deviceInfo = {
-      name: peripheral.advertisement?.localName || `Pinecil-${address}`,
-      address: address,
-      build: version,
-      rssi: peripheral.rssi,
-    };
-
-    this.connected = true;
-    this._emit('connectionChange', {
-      status: 'connected',
-      address,
-      deviceInfo: this.deviceInfo,
-    });
-
-    // Start live data polling
-    this._startLiveData();
-
-    // Load settings
-    await this._loadSettings();
-
-    return this.deviceInfo;
+    const err = new Error(
+      `Failed to reconnect to ${address} after ${attempts} attempts: ${lastError?.message}`
+    );
+    this._emit('error', { type: 'reconnect', message: err.message, address, attempts });
+    throw err;
   }
 
   async disconnect() {
     this._stopLiveData();
+
+    // Clear scan timeout
+    if (this._scanTimeout) {
+      clearTimeout(this._scanTimeout);
+      this._scanTimeout = null;
+    }
 
     if (this.device) {
       try {
@@ -153,6 +234,8 @@ class BleManager {
 
     this.device = null;
     this.connected = false;
+    this._lastLiveData = null;
+    this._lastSettings = null;
     this.settingsCharacteristics = [];
     this.bulkDataCharacteristic = null;
 
@@ -180,6 +263,7 @@ class BleManager {
       });
 
       await Promise.all(reads);
+      this._lastSettings = settings;
       this._emit('settingsLoaded', settings);
     } catch (e) {
       console.error('Failed to load settings:', e);
@@ -198,6 +282,7 @@ class BleManager {
         const value = await this.bulkDataCharacteristic.readAsync();
         const data = this.protocol.parseLiveData(value);
         if (data) {
+          this._lastLiveData = data;
           this._emit('liveData', data);
         }
       } catch (e) {
@@ -207,7 +292,7 @@ class BleManager {
           this.disconnect();
         }
       }
-    }, 500); // 2Hz update rate
+    }, this._pollingInterval);
   }
 
   _stopLiveData() {

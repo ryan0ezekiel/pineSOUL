@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
 const { BleManager } = require('./ble/ble-manager.js');
 
@@ -65,12 +65,21 @@ ipcMain.handle('ble:disconnect', async () => {
   catch (e) { return { ok: false, error: e.message }; }
 });
 
+ipcMain.handle('ble:reconnect', async (_, address) => {
+  try {
+    const info = await ble.reconnect(address);
+    return { ok: true, info };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
 ipcMain.handle('ble:getLiveData', () => {
-  return ble._lastLiveData || null;
+  return ble.getLiveData();
 });
 
 ipcMain.handle('ble:getSettings', () => {
-  return ble._lastSettings || {};
+  return ble.getSettings();
 });
 
 ipcMain.handle('ble:setSetting', async (_, name, value) => {

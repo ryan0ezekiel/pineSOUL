@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Settings2, Bluetooth, Cpu,
-  Sliders, Wifi, WifiOff, Info
+  Wifi, WifiOff, Keyboard
 } from 'lucide-react';
 import { usePinecil } from './hooks/usePinecil';
 import TitleBar from './components/TitleBar';
 import TemperatureDial from './components/TemperatureDial';
+import TemperatureGraph from './components/TemperatureGraph';
 import LiveDataPanel from './components/LiveDataPanel';
 import SettingsPanel from './components/SettingsPanel';
 import ConnectionPanel from './components/ConnectionPanel';
+import Toast from './components/Toast';
 
 const TABS = [
   { key: 'control',  label: 'Control', icon: Flame },
@@ -17,19 +19,76 @@ const TABS = [
   { key: 'connect',  label: 'Connect', icon: Bluetooth },
 ];
 
+// ─── Hotkey config (persisted in localStorage) ──────────────────────────
+const DEFAULT_HOTKEY_CONFIG = {
+  tempUp: '=',
+  tempDown: '-',
+  toggleMode: 'F2',
+  tempStep: 10,
+  toggleTemp: 200,
+};
+
+function loadHotkeyConfig() {
+  try {
+    const saved = localStorage.getItem('pinesoul_hotkeys');
+    return saved ? { ...DEFAULT_HOTKEY_CONFIG, ...JSON.parse(saved) } : DEFAULT_HOTKEY_CONFIG;
+  } catch { return DEFAULT_HOTKEY_CONFIG; }
+}
+
+function saveHotkeyConfig(config) {
+  localStorage.setItem('pinesoul_hotkeys', JSON.stringify(config));
+}
+
 export default function App() {
   const mock = !window.electronAPI;
   const p = usePinecil({ mock });
+  const [hotkeyConfig, setHotkeyConfigState] = useState(loadHotkeyConfig);
+
+  const updateHotkeyConfig = useCallback((updates) => {
+    setHotkeyConfigState(prev => {
+      const next = { ...prev, ...updates };
+      saveHotkeyConfig(next);
+      return next;
+    });
+  }, []);
+
+  // ─── Global keyboard shortcut handler ─────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore when typing in inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+      // Ignore modifiers
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const key = e.key === hc.toggleMode || e.code === hc.toggleMode ? hc.toggleMode : e.key;
+      const hc = hotkeyConfig;
+
+      if (key === hc.tempUp) {
+        e.preventDefault();
+        p.handleTempUp(hc.tempStep);
+      } else if (key === hc.tempDown) {
+        e.preventDefault();
+        p.handleTempDown(hc.tempStep);
+      } else if (key === hc.toggleMode) {
+        e.preventDefault();
+        p.handleToggleMode(hc.toggleTemp);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [hotkeyConfig, p.handleTempUp, p.handleTempDown, p.handleToggleMode]);
 
   return (
-    <div className="h-screen flex flex-col bg-iron-950 bg-mesh overflow-hidden">
-      {/* Title Bar */}
+    <div className="h-screen flex flex-col bg-iron-950 overflow-hidden">
       <TitleBar connection={p.connection} deviceInfo={p.deviceInfo} />
 
-      {/* Main content */}
+      {/* Toast overlay */}
+      <Toast toasts={p.toasts} onDismiss={p.removeToast} />
+
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar — tabs */}
-        <nav className="w-16 flex flex-col items-center py-4 gap-1 border-r border-iron-800/50 bg-iron-900/30">
+        <nav className="w-16 flex flex-col items-center py-4 gap-1 border-r border-iron-800/50 bg-iron-900/30 shrink-0">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const active = p.activeTab === tab.key;
@@ -56,7 +115,6 @@ export default function App() {
             );
           })}
 
-          {/* Spacer */}
           <div className="flex-1" />
 
           {/* Connection indicator */}
@@ -79,16 +137,50 @@ export default function App() {
                 transition={{ duration: 0.2 }}
                 className="h-full flex flex-col"
               >
-                {/* Center: Temperature dial */}
-                <div className="flex-1 flex items-center justify-center">
-                  {p.connection === 'connected' ? (
-                    <TemperatureDial
-                      liveData={p.liveData}
-                      mode={p.mode}
-                      tempPercent={p.tempPercent}
-                      setTempPercent={p.setTempPercent}
-                    />
-                  ) : (
+                {p.connection === 'connected' ? (
+                  <>
+                    {/* Top area: graph left, dial right */}
+                    <div className="flex-1 flex min-h-0 px-4 pt-4 gap-4">
+                      {/* Temperature graph — takes remaining space */}
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[11px] text-iron-500 uppercase tracking-wider font-medium">Temperature History</span>
+                          <span className="text-[10px] text-iron-600">5 min</span>
+                        </div>
+                        <div className="flex-1 min-h-0">
+                          <TemperatureGraph history={p.tempHistory} />
+                        </div>
+                      </div>
+
+                      {/* Temperature dial — right side, no shrink */}
+                      <div className="shrink-0 flex items-center justify-center">
+                        <TemperatureDial
+                          liveData={p.liveData}
+                          mode={p.mode}
+                          currentTempPercent={p.currentTempPercent}
+                          setTempPercent={p.setTempPercent}
+                          formatTemp={p.formatTemp}
+                          displayUnit={p.displayUnit}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bottom: live data panel */}
+                    <div className="px-4 pb-3">
+                      <LiveDataPanel
+                        liveData={p.liveData}
+                        formatTemp={p.formatTemp}
+                        displayUnit={p.displayUnit}
+                        formatVoltage={p.formatVoltage}
+                        formatUptime={p.formatUptime}
+                        formatHandleTemp={p.formatHandleTemp}
+                        formatTipRes={p.formatTipRes}
+                        formatPowerSource={p.formatPowerSource}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-full flex items-center justify-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-24 h-24 rounded-full bg-iron-800/50 border-2 border-dashed border-iron-700/50 flex items-center justify-center">
                         <Cpu className="w-10 h-10 text-iron-600" />
@@ -98,22 +190,21 @@ export default function App() {
                         <p className="text-xs text-iron-600 mt-1">
                           Go to <span className="text-soul-400">Connect</span> to scan and pair with your Pinecil
                         </p>
+                        {p.connectionError && (
+                          <p className="text-xs text-red-400 mt-2">{p.connectionError}</p>
+                        )}
+                        {p.deviceInfo?.address && p.connection === 'disconnected' && (
+                          <button
+                            onClick={p.reconnect}
+                            className="mt-3 px-3 py-1.5 bg-soul-500/15 hover:bg-soul-500/25 text-soul-400 text-xs font-medium rounded-lg border border-soul-500/30 transition-colors"
+                          >
+                            Reconnect
+                          </button>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-
-                {/* Bottom: Live data */}
-                <div className="px-6 pb-4">
-                  <LiveDataPanel
-                    liveData={p.liveData}
-                    formatVoltage={p.formatVoltage}
-                    formatUptime={p.formatUptime}
-                    formatHandleTemp={p.formatHandleTemp}
-                    formatTipRes={p.formatTipRes}
-                    formatPowerSource={p.formatPowerSource}
-                  />
-                </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -131,6 +222,8 @@ export default function App() {
                   onChange={p.updateSetting}
                   onSaveFlash={p.saveToFlash}
                   hasChanges={p.settingsChanged}
+                  hotkeyConfig={hotkeyConfig}
+                  onUpdateHotkeyConfig={updateHotkeyConfig}
                 />
               </motion.div>
             )}
@@ -152,6 +245,7 @@ export default function App() {
                   onScan={p.startScan}
                   onConnect={p.connect}
                   onDisconnect={p.disconnect}
+                  connectionError={p.connectionError}
                 />
               </motion.div>
             )}

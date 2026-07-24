@@ -7,11 +7,11 @@ const RADIUS = (RING_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const MAX_TEMP = 450;
 
-export default function TemperatureDial({ liveData, mode, tempPercent, setTempPercent }) {
+export default function TemperatureDial({ liveData, mode, currentTempPercent, setTempPercent, formatTemp, displayUnit }) {
   const currentTemp = liveData?.LiveTemp || 0;
   const setTemp = liveData?.SetTemp || 0;
 
-  const currentOffset = CIRCUMFERENCE - (tempPercent / 100) * CIRCUMFERENCE;
+  const currentOffset = CIRCUMFERENCE - (currentTempPercent / 100) * CIRCUMFERENCE;
   const setOffset = CIRCUMFERENCE - (setTempPercent / 100) * CIRCUMFERENCE;
 
   // Background tick marks
@@ -35,7 +35,6 @@ export default function TemperatureDial({ liveData, mode, tempPercent, setTempPe
     return marks;
   }, []);
 
-  // Glow filter colors based on mode
   const glowColor = mode?.color || '#34d399';
 
   return (
@@ -53,19 +52,14 @@ export default function TemperatureDial({ liveData, mode, tempPercent, setTempPe
         className="relative z-10"
       >
         <defs>
-          {/* Gradient for the set temp ring */}
           <linearGradient id="setTempGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={glowColor} stopOpacity="0.15" />
             <stop offset="100%" stopColor={glowColor} stopOpacity="0.25" />
           </linearGradient>
-
-          {/* Gradient for the current temp ring */}
           <linearGradient id="currentTempGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={glowColor} stopOpacity="1" />
             <stop offset="100%" stopColor={glowColor} stopOpacity="0.7" />
           </linearGradient>
-
-          {/* Glow filter */}
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feMerge>
@@ -87,7 +81,7 @@ export default function TemperatureDial({ liveData, mode, tempPercent, setTempPe
           />
         ))}
 
-        {/* Set temperature track (thin, background) */}
+        {/* Set temperature track */}
         <circle
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
@@ -103,7 +97,7 @@ export default function TemperatureDial({ liveData, mode, tempPercent, setTempPe
           opacity={0.5}
         />
 
-        {/* Current temperature ring (main arc) */}
+        {/* Current temperature ring */}
         <circle
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
@@ -122,7 +116,6 @@ export default function TemperatureDial({ liveData, mode, tempPercent, setTempPe
 
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-        {/* Mode label */}
         <div
           className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-1 transition-colors duration-500"
           style={{ color: mode?.color }}
@@ -130,28 +123,25 @@ export default function TemperatureDial({ liveData, mode, tempPercent, setTempPe
           {mode?.label || 'Offline'}
         </div>
 
-        {/* Temperature */}
         <div className="flex items-baseline gap-0.5">
           <span className="text-6xl font-light text-white tabular-nums tracking-tight leading-none">
-            {currentTemp}
+            {formatTemp ? formatTemp(currentTemp) : Math.round(currentTemp)}
           </span>
           <span className="text-xl font-light text-iron-400">
-            °C
+            {displayUnit || '°C'}
           </span>
         </div>
 
-        {/* Set temperature */}
         <div className="flex items-center gap-1.5 mt-2">
           <svg width="12" height="12" viewBox="0 0 12 12" className="opacity-40">
             <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
             <circle cx="6" cy="6" r="2" fill="currentColor" />
           </svg>
           <span className="text-sm text-iron-400 tabular-nums font-mono">
-            Target: {setTemp}°
+            Target: {formatTemp ? formatTemp(setTemp) : Math.round(setTemp)}{displayUnit || '°C'}
           </span>
         </div>
 
-        {/* Power */}
         <div className="mt-1 text-[11px] text-iron-500 tabular-nums font-mono">
           {liveData?.Watts || 0}W
         </div>

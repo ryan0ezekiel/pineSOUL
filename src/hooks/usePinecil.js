@@ -27,6 +27,7 @@ const MOCK_LIVE_DATA = {
 };
 
 const MOCK_SETTINGS = {
+  TemperatureUnit: 1,
   SolderingTemp: 320,
   BoostTemp: 400,
   AutoStart: 0,
@@ -59,6 +60,9 @@ const DEFAULT_LIVE_DATA = {
   Watts: 0,
 };
 
+// Temperature history — keeps last 5 minutes at 2Hz = 600 samples
+const MAX_HISTORY = 600;
+
 export function usePinecil({ mock = false } = {}) {
   const [connection, setConnection] = useState('disconnected');
   const [devices, setDevices] = useState([]);
@@ -68,9 +72,28 @@ export function usePinecil({ mock = false } = {}) {
   const [scanning, setScanning] = useState(false);
   const [activeTab, setActiveTab] = useState('control');
   const [settingsChanged, setSettingsChanged] = useState(false);
-  const pendingSettings = useRef({});
+  const [toasts, setToasts] = useState([]);
+  const [tempHistory, setTempHistory] = useState([]);
+  const [connectionError, setConnectionError] = useState(null);
 
-  // Mock mode: simulate a connected iron for screenshots
+  const pendingSettings = useRef({});
+  const historyRef = useRef([]);
+  const listenersRef = useRef([]);
+
+  // Toast helper
+  const addToast = useCallback((message, type = 'error') => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  }, []);
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // Mock mode: simulate a connected iron
   useEffect(() => {
     if (!mock) return;
     const timer = setTimeout(() => {
@@ -82,73 +105,175 @@ export function usePinecil({ mock = false } = {}) {
     return () => clearTimeout(timer);
   }, [mock]);
 
-  // Subscribe to BLE events
+  // Mock mode: generate temperature history for the graph
+  useEffect(() => {
+    if (!mock) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const baseTemp = 310 + Math.sin(Date.now() / 5000) * 15;
+      const noise = (Math.random() - 0.5) * 8;
+      historyRef.current = [
+        ...historyRef.current.slice(-(MAX_HISTORY - 1)),
+        { timestamp: now, liveTemp: Math.round(baseTemp + noise), setTemp: 320, watts: 45 + Math.random() * 20 }
+      ];
+      setTempHistory([...historyRef.current]);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [mock]);
+
+  // Subscribe to BLE events with proper cleanup
   useEffect(() => {
     if (!api || mock) return;
+    const unsubs = [];
 
-    const unsubConnection = api.onConnectionChange?.((status) => {
+    const unsub1 = api.onConnectionChange?.((status) => {
       if (typeof status === 'string') {
         setConnection(status);
+        if (status === 'connected') setConnectionError(null);
       } else if (status?.status) {
         setConnection(status.status);
         if (status.deviceInfo) setDeviceInfo(status.deviceInfo);
+        if (status.error) setConnectionError(status.error);
+        if (status.status === 'connected') setConnectionError(null);
       }
     });
-    const unsubLive = api.onLiveData?.((data) => {
+    if (unsub1) unsubs.push(unsub1);
+
+    const unsub2 = api.onLiveData?.((data) => {
       setLiveData(data);
+      // Append to temperature history
+      const entry = { timestamp: Date.now(), liveTemp: data.LiveTemp, setTemp: data.SetTemp, watts: data.Watts };
+      historyRef.current = [...historyRef.current.slice(-(MAX_HISTORY - 1)), entry];
+      // Batch-update state every second
     });
-    const unsubDevices = api.onDeviceFound?.((device) => {
+    if (unsub2) unsubs.push(unsub2);
+
+    const unsub3 = api.onDeviceFound?.((device) => {
       setDevices(prev => {
         if (prev.find(d => d.address === device.address)) return prev;
         return [...prev, device];
       });
     });
-    const unsubSettings = api.onSettingsLoaded?.((s) => {
+    if (unsub3) unsubs.push(unsub3);
+
+    const unsub4 = api.onSettingsLoaded?.((s) => {
       setSettings(s);
       setSettingsChanged(false);
       pendingSettings.current = {};
     });
+    if (unsub4) unsubs.push(unsub4);
 
-    return () => {};
-  }, [mock]);
+    const unsub5 = api.onError?.((err) => {
+      addToast(err.message || String(err), 'error');
+    });
+    if (unsub5) unsubs.push(unsub5);
+
+    listenersRef.current = unsubs;
+
+    return () => {
+      unsubs.forEach(fn => typeof fn === 'function' && fn());
+      listenersRef.current = [];
+    };
+  }, [mock, addToast]);
+
+  // Sync history to state every 800ms for the graph
+  useEffect(() => {
+    if (connection !== 'connected') {
+      setTempHistory([]);
+      return;
+    }
+    const interval = setInterval(() => {
+      setTempHistory([...historyRef.current]);
+    }, 800);
+    return () => clearInterval(interval);
+  }, [connection]);
 
   // Scanning
   const startScan = useCallback(async () => {
     setDevices([]);
     setScanning(true);
-    await api?.bleScan();
+    setConnectionError(null);
+    try {
+      await api?.bleScan();
+    } catch (e) {
+      addToast('Scan failed: ' + (e.message || e), 'error');
+    }
     setTimeout(() => setScanning(false), 10000);
-  }, []);
+  }, [addToast]);
 
   // Connect
   const connect = useCallback(async (address) => {
     setConnection('connecting');
-    const result = await api?.bleConnect(address);
-    if (!result?.ok) {
+    setConnectionError(null);
+    try {
+      const result = await api?.bleConnect(address);
+      if (!result?.ok) {
+        setConnection('disconnected');
+        setConnectionError(result?.error || 'Connection failed');
+        addToast(result?.error || 'Failed to connect to device', 'error');
+      }
+    } catch (e) {
       setConnection('disconnected');
+      setConnectionError(e.message || String(e));
+      addToast('Connection error: ' + (e.message || String(e)), 'error');
     }
-  }, []);
+  }, [addToast]);
 
   // Disconnect
   const disconnect = useCallback(async () => {
-    await api?.bleDisconnect();
+    try {
+      await api?.bleDisconnect();
+    } catch (e) {
+      // ignore
+    }
     setConnection('disconnected');
     setDeviceInfo(null);
+    setLiveData(DEFAULT_LIVE_DATA);
+    setConnectionError(null);
   }, []);
 
-  // Update setting (local only, not sent yet)
+  // Reconnect
+  const reconnect = useCallback(async () => {
+    if (!deviceInfo?.address) return;
+    addToast('Reconnecting...', 'info');
+    let success = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+      try {
+        const result = await api?.bleConnect(deviceInfo.address);
+        if (result?.ok) {
+          success = true;
+          break;
+        }
+      } catch (e) {
+        // try again
+      }
+    }
+    if (!success) {
+      addToast('Reconnection failed after 3 attempts', 'error');
+    } else {
+      addToast('Reconnected successfully', 'success');
+    }
+  }, [deviceInfo, addToast]);
+
+  // Update setting (local)
   const updateSetting = useCallback((name, value) => {
     setSettings(prev => ({ ...prev, [name]: value }));
     pendingSettings.current[name] = value;
     setSettingsChanged(true);
   }, []);
 
-  // Apply all pending settings to the iron
+  // Apply all pending settings
   const applySettings = useCallback(async () => {
+    if (!api) return [];
     const results = [];
     for (const [name, value] of Object.entries(pendingSettings.current)) {
-      const result = await api?.bleSetSetting(name, value);
-      results.push({ name, ...result });
+      try {
+        const result = await api.bleSetSetting(name, value);
+        results.push({ name, ...result });
+      } catch (e) {
+        results.push({ name, ok: false, error: e.message });
+      }
     }
     pendingSettings.current = {};
     setSettingsChanged(false);
@@ -158,24 +283,67 @@ export function usePinecil({ mock = false } = {}) {
   // Save to flash
   const saveToFlash = useCallback(async () => {
     await applySettings();
-    return api?.bleSaveToFlash();
-  }, [applySettings]);
+    try {
+      const result = await api?.bleSaveToFlash();
+      if (result?.ok) addToast('Settings saved to flash!', 'success');
+      else addToast('Failed to save settings', 'error');
+      return result;
+    } catch (e) {
+      addToast('Save error: ' + (e.message || String(e)), 'error');
+    }
+  }, [applySettings, addToast]);
 
-  // Derived data
-  const mode = MODE_MAP[liveData.OperatingMode] || MODE_MAP[0];
-  const tempPercent = liveData.MaxTipTempAbility > 0
-    ? (liveData.LiveTemp / liveData.MaxTipTempAbility) * 100
-    : 0;
-  const setTempPercent = liveData.MaxTipTempAbility > 0
-    ? (liveData.SetTemp / liveData.MaxTipTempAbility) * 100
-    : 0;
+  // ─── Keyboard actions ────────────────────────────────
+  const handleTempUp = useCallback((step) => {
+    const current = liveData.SetTemp || 320;
+    const stepVal = step || 10;
+    const newTemp = Math.min(current + stepVal, liveData.MaxTipTempAbility || 450);
+    updateSetting('SolderingTemp', newTemp);
+    // Optimistically update SetTemp in liveData
+    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
+    // Send immediately if connected
+    if (!mock && api) {
+      api.bleSetSetting('SolderingTemp', newTemp).catch(() => {});
+    }
+  }, [liveData.SetTemp, liveData.MaxTipTempAbility, updateSetting, mock]);
 
-  // Format helpers
-  const formatVoltage = (raw) => {
+  const handleTempDown = useCallback((step) => {
+    const current = liveData.SetTemp || 320;
+    const stepVal = step || 10;
+    const newTemp = Math.max(current - stepVal, 10);
+    updateSetting('SolderingTemp', newTemp);
+    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
+    if (!mock && api) {
+      api.bleSetSetting('SolderingTemp', newTemp).catch(() => {});
+    }
+  }, [liveData.SetTemp, updateSetting, mock]);
+
+  const handleToggleMode = useCallback((targetTemp) => {
+    const toggleTarget = targetTemp || 200;
+    // If currently hot (mode 1, temp > 50), go cold
+    // If currently cold, go to target
+    if (liveData.OperatingMode === 1 && liveData.LiveTemp > 50) {
+      // Go to cold/standby
+      updateSetting('SolderingTemp', 25);
+      setLiveData(prev => ({ ...prev, SetTemp: 25 }));
+      if (!mock && api) api.bleSetSetting('SolderingTemp', 25).catch(() => {});
+      addToast('❄️ Cooling down...', 'info');
+    } else {
+      // Go to target hot temperature
+      updateSetting('SolderingTemp', toggleTarget);
+      setLiveData(prev => ({ ...prev, SetTemp: toggleTarget }));
+      if (!mock && api) api.bleSetSetting('SolderingTemp', toggleTarget).catch(() => {});
+      addToast('🔥 Heating to ' + toggleTarget + '°', 'success');
+    }
+  }, [liveData.OperatingMode, liveData.LiveTemp, updateSetting, mock, addToast]);
+
+  // ─── Format helpers (memoized) ──────────────────────────
+  const formatVoltage = useCallback((raw) => {
     if (raw === 0) return '--';
     return (raw / 100).toFixed(1);
-  };
-  const formatUptime = (ms) => {
+  }, []);
+
+  const formatUptime = useCallback((ms) => {
     if (!ms || ms === 0) return '--';
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
@@ -183,17 +351,41 @@ export function usePinecil({ mock = false } = {}) {
     if (h > 0) return `${h}h ${m % 60}m`;
     if (m > 0) return `${m}m ${s % 60}s`;
     return `${s}s`;
-  };
-  const formatHandleTemp = (raw) => {
+  }, []);
+
+  const formatHandleTemp = useCallback((raw) => {
     return (raw / 10).toFixed(0);
-  };
-  const formatTipRes = (raw) => {
+  }, []);
+
+  const formatTipRes = useCallback((raw) => {
     if (!raw || raw === 0) return '--';
     return (raw / 100).toFixed(1);
-  };
-  const formatPowerSource = (raw) => {
+  }, []);
+
+  const formatPowerSource = useCallback((raw) => {
     return ['USB-C', 'DC Jack', 'QC', 'PD'][raw] || 'Unknown';
-  };
+  }, []);
+
+  const formatTemp = useCallback((tempC) => {
+    if (tempC == null) return '--';
+    // TemperatureUnit: 0=C, 1=F
+    if (settings.TemperatureUnit === 1) {
+      return Math.round(tempC * 9/5 + 32);
+    }
+    return Math.round(tempC);
+  }, [settings.TemperatureUnit]);
+
+  const tempUnitLabel = settings.TemperatureUnit === 1 ? '°F' : '°C';
+  const displayUnit = tempUnitLabel;
+
+  // Derived data
+  const mode = MODE_MAP[liveData.OperatingMode] || MODE_MAP[0];
+  const currentTempPercent = liveData.MaxTipTempAbility > 0
+    ? (liveData.LiveTemp / liveData.MaxTipTempAbility) * 100
+    : 0;
+  const setTempPercent = liveData.MaxTipTempAbility > 0
+    ? (liveData.SetTemp / liveData.MaxTipTempAbility) * 100
+    : 0;
 
   return {
     // State
@@ -205,22 +397,35 @@ export function usePinecil({ mock = false } = {}) {
     scanning,
     activeTab,
     settingsChanged,
+    toasts,
+    tempHistory,
+    connectionError,
 
     // Derived
     mode,
-    tempPercent,
+    currentTempPercent,
     setTempPercent,
+    displayUnit,
 
     // Actions
     startScan,
     connect,
     disconnect,
+    reconnect,
     setActiveTab,
     updateSetting,
     applySettings,
     saveToFlash,
+    addToast,
+    removeToast,
+
+    // Keyboard actions
+    handleTempUp,
+    handleTempDown,
+    handleToggleMode,
 
     // Formatters
+    formatTemp,
     formatVoltage,
     formatUptime,
     formatHandleTemp,

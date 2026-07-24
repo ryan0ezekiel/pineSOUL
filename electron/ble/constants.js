@@ -1,5 +1,6 @@
 // Pinecil V2 BLE Protocol Constants
 // CommonJS version for Electron main process
+// Based on IronOS firmware and PineSAM reference implementation
 
 // ─── Service UUIDs ───────────────────────────────────────────────────
 const SERVICES = {
@@ -54,7 +55,11 @@ const SETTINGS_V221 = {
   'f6d7fffe-5a10-4eba-aa55-33e27f9bc533': 'SettingsReset',
 };
 
-// ─── Bulk Data Names ─────────────────────────────────────────────────
+// ─── Settings UUID → Name Map (v2.20) ────────────────────────────────
+// v2.20 firmware uses the same characteristic UUIDs inside the service
+const SETTINGS_V220 = { ...SETTINGS_V221 };
+
+// ─── Bulk Data Names (v2.21+) ────────────────────────────────────────
 const BULK_DATA_V221 = {
   '9eae1001-9d0d-48c5-aa55-33e27f9bc533': 'BulkData',
   '9eae1002-9d0d-48c5-aa55-33e27f9bc533': 'Accelerometer',
@@ -62,11 +67,139 @@ const BULK_DATA_V221 = {
   '9eae1004-9d0d-48c5-aa55-33e27f9bc533': 'DeviceID',
 };
 
+// ─── Bulk Data Names (v2.20) ─────────────────────────────────────────
+// v2.20 firmware uses the same characteristic UUIDs inside the service
+const BULK_DATA_V220 = { ...BULK_DATA_V221 };
+
 // ─── Live Data Fields ────────────────────────────────────────────────
+// 14 × uint32 little-endian values from BulkData characteristic
 const LIVE_DATA_FIELDS = [
-  'LiveTemp', 'SetTemp', 'Voltage', 'HandleTemp', 'PWMLevel',
-  'PowerSource', 'TipResistance', 'Uptime', 'MovementTime',
-  'MaxTipTempAbility', 'uVoltsTip', 'HallSensor', 'OperatingMode', 'Watts',
+  'LiveTemp',       // Current tip temperature (0.1°C or °F units)
+  'SetTemp',        // Target temperature
+  'Voltage',        // Input voltage (10mV units, so 200 = 2.00V → actually mV * 10)
+  'HandleTemp',     // Handle temperature
+  'PWMLevel',       // PWM duty cycle (0-100)
+  'PowerSource',    // Power source type (0=USB, 1=DC, 2=QC, 3=PD)
+  'TipResistance',  // Tip resistance in milliohms (80 = 8.0Ω)
+  'Uptime',         // Uptime in milliseconds
+  'MovementTime',   // Time since last movement (ms)
+  'MaxTipTempAbility', // Maximum achievable tip temperature
+  'uVoltsTip',      // Microvolts across the tip
+  'HallSensor',     // Hall sensor reading
+  'OperatingMode',  // 0=Standby, 1=Soldering, 2=Boost, 3=Sleep
+  'Watts',          // Current power draw in watts
 ];
 
-module.exports = { SERVICES, SETTINGS_V221, BULK_DATA_V221, LIVE_DATA_FIELDS };
+// ─── Operating Modes ─────────────────────────────────────────────────
+const OPERATING_MODES = {
+  0: 'Standby',
+  1: 'Soldering',
+  2: 'Boost',
+  3: 'Sleep',
+};
+
+const OPERATING_MODE_COLORS = {
+  0: '#34d399', // ready green
+  1: '#ff6b35', // heat orange
+  2: '#f59e0b', // boost amber
+  3: '#818cf8', // sleep purple
+};
+
+// ─── Temperature Limits ──────────────────────────────────────────────
+const TEMP_LIMITS = {
+  SetTemperature:    { C: [10, 450], F: [50, 850] },
+  SleepTemperature:  { C: [10, 300], F: [50, 570] },
+  BoostTemperature:  { C: [250, 450], F: [480, 850] },
+};
+
+// ─── Setting Value Limits ────────────────────────────────────────────
+const VALUE_LIMITS = {
+  SetTemperature:        [10, 850],
+  SleepTemperature:      [10, 850],
+  SleepTimeout:          [0, 15],
+  DCInCutoff:            [0, 4],
+  MinVolCell:            [24, 38],
+  QCMaxVoltage:          [90, 220],
+  DisplayRotation:       [0, 2],
+  MotionSensitivity:     [0, 9],
+  AnimLoop:              [0, 1],
+  AnimSpeed:             [0, 3],
+  AutoStart:             [0, 3],
+  ShutdownTimeout:       [0, 60],
+  CooldownBlink:         [0, 1],
+  AdvancedIdle:          [0, 1],
+  AdvancedSoldering:     [0, 1],
+  TemperatureUnit:       [0, 1],
+  ScrollingSpeed:        [0, 1],
+  LockingMode:           [0, 2],
+  PowerPulsePower:       [0, 99],
+  PowerPulseWait:        [1, 9],
+  PowerPulseDuration:    [1, 9],
+  VoltageCalibration:    [360, 900],
+  BoostTemperature:      [0, 850],
+  CalibrationOffset:     [100, 2500],
+  PowerLimit:            [0, 220],
+  ReverseButtonTempChange: [0, 1],
+  TempChangeLongStep:    [5, 90],
+  TempChangeShortStep:   [1, 50],
+  HallEffectSensitivity: [0, 9],
+  Brightness:            [0, 101],
+  LOGOTime:              [0, 5],
+  CalibrateCJC:          [0, 1],
+  BLEEnabled:            [0, 1],
+  PDNegTimeout:          [0, 50],
+  ColourInversion:       [0, 1],
+};
+
+// ─── Setting Display Metadata ────────────────────────────────────────
+const SETTING_META = {
+  SetTemperature:      { label: 'Soldering Temp',     unit: '°',    group: 'soldering' },
+  BoostTemperature:    { label: 'Boost Temp',         unit: '°',    group: 'soldering' },
+  SleepTemperature:    { label: 'Sleep Temp',         unit: '°',    group: 'sleep' },
+  SleepTimeout:        { label: 'Sleep Timeout',      unit: 's',    group: 'sleep',     format: v => v === 0 ? 'Off' : v < 6 ? `${v * 15}s` : `${Math.floor(v / 4)}m ${v % 4 * 15}s` },
+  ShutdownTimeout:     { label: 'Shutdown Timer',     unit: 'min',  group: 'sleep' },
+  AutoStart:           { label: 'Start-up',           unit: '',     group: 'soldering', format: v => ['Off', 'Heat', 'Sleep', 'Standby'][v] || 'Off' },
+  MotionSensitivity:   { label: 'Motion Sensitivity', unit: '',     group: 'device',    format: v => v === 0 ? 'Off' : v },
+  LockingMode:         { label: 'Button Lock',        unit: '',     group: 'device',    format: v => ['Disable', 'Boost Only', 'Full'][v] || 'Disable' },
+  TemperatureUnit:     { label: 'Temp Unit',          unit: '',     group: 'device',    format: v => v === 0 ? '°C' : '°F' },
+  DisplayRotation:     { label: 'Display Rotation',   unit: '',     group: 'device',    format: v => ['Right', 'Left', 'Auto'][v] || 'Right' },
+  PowerLimit:          { label: 'Power Limit',        unit: 'W',    group: 'power' },
+  DCInCutoff:          { label: 'Power Source',       unit: '',     group: 'power',     format: v => ['DC 10V', 'DC 12V', 'DC 14V', 'DC 16V', 'DC 18V'][v] || 'DC 10V' },
+  MinVolCell:          { label: 'Min Cell Voltage',   unit: '0.1V', group: 'power' },
+  QCMaxVoltage:        { label: 'QC Max Voltage',     unit: '0.1V', group: 'power' },
+  PDNegTimeout:        { label: 'PD Timeout',         unit: '×100ms', group: 'power' },
+  Brightness:          { label: 'Screen Brightness',  unit: '',     group: 'display' },
+  ColourInversion:     { label: 'Invert Screen',      unit: '',     group: 'display',   format: v => v === 0 ? 'Off' : 'On' },
+  LOGOTime:            { label: 'Boot Logo',          unit: 's',    group: 'display' },
+  AnimSpeed:           { label: 'Animation Speed',    unit: '',     group: 'display',   format: v => ['Off', 'Slow', 'Medium', 'Fast'][v] || 'Off' },
+  AnimLoop:            { label: 'Animation Loop',     unit: '',     group: 'display',   format: v => v === 0 ? 'Off' : 'On' },
+  CooldownBlink:       { label: 'Cooldown Flash',     unit: '',     group: 'display',   format: v => v === 0 ? 'Off' : 'On' },
+  ScrollingSpeed:      { label: 'Scroll Speed',       unit: '',     group: 'display',   format: v => v === 0 ? 'Slow' : 'Fast' },
+  AdvancedIdle:        { label: 'Detailed Idle',      unit: '',     group: 'display',   format: v => v === 0 ? 'Off' : 'On' },
+  AdvancedSoldering:   { label: 'Detailed Solder',    unit: '',     group: 'display',   format: v => v === 0 ? 'Off' : 'On' },
+  PowerPulsePower:     { label: 'Pulse Power',        unit: 'W',    group: 'advanced' },
+  PowerPulseWait:      { label: 'Pulse Delay',        unit: '×2.5s', group: 'advanced' },
+  PowerPulseDuration:  { label: 'Pulse Duration',     unit: '×250ms', group: 'advanced' },
+  TempChangeShortStep: { label: 'Short Temp Step',    unit: '°',    group: 'advanced' },
+  TempChangeLongStep:  { label: 'Long Temp Step',     unit: '°',    group: 'advanced' },
+  ReverseButtonTempChange: { label: 'Swap +/-',       unit: '',     group: 'advanced',  format: v => v === 0 ? 'Normal' : 'Reversed' },
+  HallEffectSensitivity: { label: 'Hall Sensitivity',  unit: '',    group: 'advanced',  format: v => v === 0 ? 'Off' : v },
+  BLEEnabled:          { label: 'BLE Enabled',        unit: '',     group: 'advanced',  format: v => v === 0 ? 'Off' : 'On' },
+  VoltageCalibration:  { label: 'VIN Calibration',    unit: '',     group: 'calibration' },
+  CalibrationOffset:   { label: 'CJC Offset',         unit: '',     group: 'calibration' },
+  CalibrateCJC:        { label: 'Calibrate CJC',      unit: '',     group: 'calibration', format: v => 'Trigger' },
+};
+
+module.exports = {
+  SERVICES,
+  SETTINGS_V221,
+  SETTINGS_V220,
+  BULK_DATA_V221,
+  BULK_DATA_V220,
+  LIVE_DATA_FIELDS,
+  OPERATING_MODES,
+  OPERATING_MODE_COLORS,
+  TEMP_LIMITS,
+  VALUE_LIMITS,
+  SETTING_META,
+};
