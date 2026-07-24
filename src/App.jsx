@@ -143,11 +143,11 @@ export default function App() {
                     <div className="flex-1 flex min-h-0 px-4 pt-4 gap-4">
                       {/* Temperature graph — takes remaining space */}
                       <div className="flex-1 min-w-0 flex flex-col">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 px-1">
                           <span className="text-[11px] text-iron-500 uppercase tracking-wider font-medium">Temperature History</span>
                           <span className="text-[10px] text-iron-600">5 min</span>
                         </div>
-                        <div className="flex-1 min-h-0 h-full">
+                        <div className="flex-1 min-h-0 px-1 pb-1">
                           <TemperatureGraph history={p.tempHistory} />
                         </div>
                       </div>
