@@ -28,6 +28,11 @@ const DEFAULT_HOTKEY_CONFIG = {
   toggleTemp: 200,
 };
 
+const DEFAULT_APP_CONFIG = {
+  pollingRate: 500,     // ms between mock data updates
+  graphWindow: 300,     // seconds of history to show
+};
+
 function loadHotkeyConfig() {
   try {
     const saved = localStorage.getItem('pinesoul_hotkeys');
@@ -39,10 +44,21 @@ function saveHotkeyConfig(config) {
   localStorage.setItem('pinesoul_hotkeys', JSON.stringify(config));
 }
 
+function loadAppConfig() {
+  try {
+    const saved = localStorage.getItem('pinesoul_appconfig');
+    return saved ? { ...DEFAULT_APP_CONFIG, ...JSON.parse(saved) } : DEFAULT_APP_CONFIG;
+  } catch { return DEFAULT_APP_CONFIG; }
+}
+
+function saveAppConfig(config) {
+  localStorage.setItem('pinesoul_appconfig', JSON.stringify(config));
+}
+
 export default function App() {
   const mock = !window.electronAPI;
-  const p = usePinecil({ mock });
   const [hotkeyConfig, setHotkeyConfigState] = useState(loadHotkeyConfig);
+  const [appConfig, setAppConfigState] = useState(loadAppConfig);
 
   const updateHotkeyConfig = useCallback((updates) => {
     setHotkeyConfigState(prev => {
@@ -51,6 +67,16 @@ export default function App() {
       return next;
     });
   }, []);
+
+  const updateAppConfig = useCallback((updates) => {
+    setAppConfigState(prev => {
+      const next = { ...prev, ...updates };
+      saveAppConfig(next);
+      return next;
+    });
+  }, []);
+
+  const p = usePinecil({ mock, pollingRate: appConfig.pollingRate });
 
   // ─── Global keyboard shortcut handler ─────────────────
   useEffect(() => {
@@ -145,10 +171,15 @@ export default function App() {
                       <div className="flex-1 min-w-0 flex flex-col">
                         <div className="flex items-center gap-2 mb-2 px-1">
                           <span className="text-[11px] text-iron-500 uppercase tracking-wider font-medium">Temperature History</span>
-                          <span className="text-[10px] text-iron-600">5 min</span>
+                          <span className="text-[10px] text-iron-600">{appConfig.graphWindow / 60} min</span>
                         </div>
                         <div className="flex-1 min-h-0 px-5 pb-5">
-                          <TemperatureGraph history={p.tempHistory} />
+                          <TemperatureGraph
+                            history={p.tempHistory}
+                            formatTemp={p.formatTemp}
+                            displayUnit={p.displayUnit}
+                            windowSeconds={appConfig.graphWindow}
+                          />
                         </div>
                       </div>
 
@@ -224,6 +255,8 @@ export default function App() {
                   hasChanges={p.settingsChanged}
                   hotkeyConfig={hotkeyConfig}
                   onUpdateHotkeyConfig={updateHotkeyConfig}
+                  appConfig={appConfig}
+                  onUpdateAppConfig={updateAppConfig}
                 />
               </motion.div>
             )}

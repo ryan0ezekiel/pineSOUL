@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Moon, Power, Monitor, Settings2,
-  Save, ChevronDown, Minus, Plus, Keyboard
+  Save, ChevronDown, Minus, Plus, Keyboard, Gauge, Clock
 } from 'lucide-react';
 import { SETTING_META, VALUE_LIMITS } from '../constants.js';
 
@@ -13,6 +13,7 @@ const GROUPS = {
   display:   { label: 'Display',   icon: Monitor, color: 'text-amber-400' },
   hotkeys:   { label: 'Shortcuts', icon: Keyboard, color: 'text-soul-400' },
   advanced:  { label: 'Advanced',  icon: Settings2, color: 'text-iron-400' },
+  app:       { label: 'App',       icon: Gauge,   color: 'text-emerald-400' },
 };
 
 const HIDDEN_SETTINGS = new Set([
@@ -148,13 +149,14 @@ function HotkeyRow({ label, description, value, onChange }) {
   );
 }
 
-function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHotkeyConfig }) {
+function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
   const [expanded, setExpanded] = useState(groupKey === 'soldering' || groupKey === 'hotkeys');
   const group = GROUPS[groupKey];
   if (!group) return null;
   const Icon = group.icon;
 
   const isHotkeyGroup = groupKey === 'hotkeys';
+  const isAppGroup = groupKey === 'app';
 
   const groupSettings = !isHotkeyGroup
     ? Object.entries(SETTING_META)
@@ -263,6 +265,47 @@ function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHot
                     </div>
                   </div>
                 </>
+              ) : isAppGroup ? (
+                <>
+                  <div className="px-3 py-2">
+                    <p className="text-[11px] text-iron-500 leading-relaxed">
+                      Local app display settings. These only affect how data is shown in pineSOUL — not sent to the iron.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 px-3">
+                    <div>
+                      <span className="text-sm text-iron-300">Graph Time Window</span>
+                      <p className="text-[10px] text-iron-600 mt-0.5">How much history to show on the graph</p>
+                    </div>
+                    <select
+                      value={appConfig?.graphWindow || 300}
+                      onChange={e => onUpdateAppConfig({ graphWindow: parseInt(e.target.value) })}
+                      className="bg-iron-800 border border-iron-700/50 rounded-lg px-3 py-1 text-sm text-iron-200 focus:outline-none focus:border-soul-500/50 appearance-none cursor-pointer"
+                    >
+                      <option value={60}>1 min</option>
+                      <option value={180}>3 min</option>
+                      <option value={300}>5 min</option>
+                      <option value={600}>10 min</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 px-3">
+                    <div>
+                      <span className="text-sm text-iron-300">Polling Rate</span>
+                      <p className="text-[10px] text-iron-600 mt-0.5">How often the graph updates (lower = smoother)</p>
+                    </div>
+                    <select
+                      value={appConfig?.pollingRate || 500}
+                      onChange={e => onUpdateAppConfig({ pollingRate: parseInt(e.target.value) })}
+                      className="bg-iron-800 border border-iron-700/50 rounded-lg px-3 py-1 text-sm text-iron-200 focus:outline-none focus:border-soul-500/50 appearance-none cursor-pointer"
+                    >
+                      <option value={100}>100 ms</option>
+                      <option value={250}>250 ms</option>
+                      <option value={500}>500 ms</option>
+                      <option value={1000}>1 s</option>
+                      <option value={2000}>2 s</option>
+                    </select>
+                  </div>
+                </>
               ) : (
                 groupSettings.map(({ name, meta }) => (
                   <SettingRow
@@ -282,7 +325,7 @@ function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHot
   );
 }
 
-export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChanges, hotkeyConfig, onUpdateHotkeyConfig }) {
+export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChanges, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-iron-800/50">
@@ -309,6 +352,8 @@ export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChan
             onChange={onChange}
             hotkeyConfig={hotkeyConfig}
             onUpdateHotkeyConfig={onUpdateHotkeyConfig}
+            appConfig={appConfig}
+            onUpdateAppConfig={onUpdateAppConfig}
           />
         ))}
       </div>

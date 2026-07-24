@@ -50,6 +50,8 @@ function generateTicks(maxVal) {
 export default function TemperatureGraph({
   history = [],
   windowSeconds = 300, // 5 minutes
+  formatTemp = (v) => Math.round(v),
+  displayUnit = '°C',
 }) {
   const containerRef = useRef(null);
   const [height, setHeight] = useState(200);
@@ -208,16 +210,28 @@ export default function TemperatureGraph({
             />
             <text
               x={left - 8}
-              y={t.y + 4}
+              y={t.value === '—' ? t.y + 4 : t.y + 4}
               textAnchor="end"
               fill="#94a3b8"
               fontSize="10"
               fontFamily="JetBrains Mono, monospace"
             >
-              {t.value}
+              {formatTemp(t.value)}
             </text>
           </g>
         ))}
+
+        {/* ── Unit label ──────────────────────────────────────────────── */}
+        <text
+          x={left - 8}
+          y={top + 4}
+          textAnchor="end"
+          fill="#6b7280"
+          fontSize="8"
+          fontFamily="JetBrains Mono, monospace"
+        >
+          {displayUnit}
+        </text>
 
         {/* ── X-axis time labels ─────────────────────────────────────── */}
         {xLabels.map((l, i) => (

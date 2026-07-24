@@ -60,10 +60,10 @@ const DEFAULT_LIVE_DATA = {
   Watts: 0,
 };
 
-// Temperature history — keeps last 5 minutes at 2Hz = 600 samples
-const MAX_HISTORY = 600;
+// Temperature history — max buffer for 10 min at 100ms = 6000 samples
+const MAX_HISTORY = 6000;
 
-export function usePinecil({ mock = false } = {}) {
+export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const [connection, setConnection] = useState('disconnected');
   const [devices, setDevices] = useState([]);
   const [deviceInfo, setDeviceInfo] = useState(null);
@@ -117,9 +117,9 @@ export function usePinecil({ mock = false } = {}) {
         { timestamp: now, liveTemp: Math.round(baseTemp + noise), setTemp: 320, watts: 45 + Math.random() * 20 }
       ];
       setTempHistory([...historyRef.current]);
-    }, 500);
+    }, pollingRate);
     return () => clearInterval(interval);
-  }, [mock]);
+  }, [mock, pollingRate]);
 
   // Subscribe to BLE events with proper cleanup
   useEffect(() => {
