@@ -12,8 +12,8 @@ const GROUPS = {
   power:     { label: 'Power',     icon: Power,  color: 'text-blue-400' },
   display:   { label: 'Display',   icon: Monitor, color: 'text-amber-400' },
   hotkeys:   { label: 'Shortcuts', icon: Keyboard, color: 'text-soul-400' },
-  advanced:  { label: 'Advanced',  icon: Settings2, color: 'text-iron-400' },
   app:       { label: 'App',       icon: Gauge,   color: 'text-emerald-400' },
+  advanced:  { label: 'Advanced',  icon: Settings2, color: 'text-iron-400' },
 };
 
 const HIDDEN_SETTINGS = new Set([
@@ -150,7 +150,7 @@ function HotkeyRow({ label, description, value, onChange }) {
 }
 
 function SettingsGroup({ groupKey, settings, onChange, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
-  const [expanded, setExpanded] = useState(groupKey === 'soldering' || groupKey === 'hotkeys');
+  const [expanded, setExpanded] = useState(false);
   const group = GROUPS[groupKey];
   if (!group) return null;
   const Icon = group.icon;
