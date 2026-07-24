@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Modern Pinecil V2 controller — soul of your soldering iron",
   "main": "electron/main.js",
-  "author": "niflheimr",
+  "author": "niflheimr <niflheimr@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
