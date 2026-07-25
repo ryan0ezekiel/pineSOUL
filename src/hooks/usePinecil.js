@@ -232,11 +232,10 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     } catch (e) {
       addToast('Scan failed: ' + (e.message || e), 'error');
     }
-    // In Electron, backend emits ble:scanning events to control state.
-    // Only use setTimeout fallback for PWA (Web Bluetooth, no backend events).
-    if (!api) {
-      scanTimeoutRef.current = setTimeout(() => setScanning(false), 10000);
-    }
+    // Electron backend emits ble:scanning events to control state.
+    // PWA (Web Bluetooth) has no backend events — bleScan blocks on browser dialog
+    // so scanning is done when we reach here. Set a safety timeout as backup.
+    scanTimeoutRef.current = setTimeout(() => setScanning(false), 12000);
   }, [addToast]);
 
   // Connect

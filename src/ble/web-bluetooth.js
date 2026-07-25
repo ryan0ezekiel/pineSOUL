@@ -279,13 +279,13 @@ export class WebBleAdapter {
 
       const settings = {};
 
-      const settingNames = Object.values(this.#settingsMap).filter(n => n !== 'save_to_flash' && n !== 'SettingsReset');
+      const settingNames = Object.keys(this.#settingsMap).filter(n => n !== 'save_to_flash' && n !== 'SettingsReset');
 
       // Read all settings in parallel
       const reads = await Promise.allSettled(
         settingNames.map(async (name) => {
-          const uuid = Object.keys(this.#settingsMap).find(k => this.#settingsMap[k] === name);
-          if (!uuid) return null;
+          const uuid = this.#settingsMap[name];
+          if (!uuid) return { name, value: null, char: null };
 
           try {
             const char = await settingsService.getCharacteristic(uuid);
@@ -308,7 +308,7 @@ export class WebBleAdapter {
 
       // Store save_to_flash characteristic
       try {
-        const saveUUID = Object.keys(this.#settingsMap).find(k => this.#settingsMap[k] === 'save_to_flash');
+        const saveUUID = this.#settingsMap['save_to_flash'];
         if (saveUUID) {
           this.#saveChar = await settingsService.getCharacteristic(saveUUID);
         }
@@ -338,7 +338,7 @@ export class WebBleAdapter {
       const char = this.#settingsChars[name];
       if (!char) {
         // Try to get the characteristic on the fly
-        const uuid = Object.keys(this.#settingsMap).find(k => this.#settingsMap[k] === name);
+        const uuid = this.#settingsMap[name];
         if (!uuid) {
           this.#emit('error', { message: `Unknown setting: ${name}` });
           return { ok: false, error: `Unknown setting: ${name}` };
@@ -356,6 +356,10 @@ export class WebBleAdapter {
       }
 
       const encoded = encodeSetting(value);
+      if (!encoded) {
+        this.#emit('error', { message: `Invalid value for ${name}` });
+        return { ok: false, error: `Invalid value for ${name}` };
+      }
       await withTimeout(this.#settingsChars[name].writeValue(encoded), 10000, `Write setting ${name}`);
       return { ok: true };
 
@@ -382,7 +386,7 @@ export class WebBleAdapter {
       const settingsService = await withTimeout(
         this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
       );
-      const saveUUID = Object.keys(this.#settingsMap).find(k => this.#settingsMap[k] === 'save_to_flash');
+      const saveUUID = this.#settingsMap['save_to_flash'];
       if (saveUUID) {
         this.#saveChar = await withTimeout(
           settingsService.getCharacteristic(saveUUID), 10000, 'Get save characteristic'

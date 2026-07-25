@@ -47,12 +47,16 @@ function createWindow() {
 
   // Prevent navigation away from the app (XSS escalation mitigation)
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const appUrl = isDev
-      ? new URL('http://localhost:5173')
-      : new URL(`file://${path.join(__dirname, '..', 'dist', 'renderer', 'index.html')}`);
-    const target = new URL(url);
-    if (target.origin !== appUrl.origin) {
-      console.warn(`Blocked navigation to ${url}`);
+    try {
+      const appUrl = isDev
+        ? new URL('http://localhost:5173')
+        : new URL(`file://${path.join(__dirname, '..', 'dist', 'renderer', 'index.html')}`);
+      const target = new URL(url);
+      if (target.origin !== appUrl.origin) {
+        console.warn(`Blocked navigation to ${url}`);
+        event.preventDefault();
+      }
+    } catch {
       event.preventDefault();
     }
   });
@@ -119,6 +123,6 @@ app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) creat
 app.on('before-quit', () => {
   if (destroyPromise) {
     // BLE cleanup is in progress — defer quit
-    console.log('Waiting for BLE cleanup before quit...');
+    console.debug('Waiting for BLE cleanup before quit...');
   }
 });

@@ -1,7 +1,26 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 20 — v1.2.3  
-**Status:** 191 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20), 0 critical remaining
+**Last Updated:** Loop 21 — v1.3.2  
+**Status:** 203 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21), 0 critical remaining
+
+---
+
+## Cycle 21 Fixes (v1.3.2) — Electron + PWA BLE + React + Code Quality
+
+| # | Severity | Bug | File | Fix |
+|---|----------|-----|------|-----|
+| 192 | MEDIUM | `PDVpdoEnabled` missing from Electron `VALUE_LIMITS` | `electron/ble/constants.js` | Added `PDVpdoEnabled: [0, 1]` |
+| 193 | MEDIUM | `UILanguage` missing from Electron `VALUE_LIMITS` | `electron/ble/constants.js` | Added `UILanguage: [0, 15]` |
+| 194 | LOW | Bare `noble.stopScanning()` in scan timeout without try/catch | `electron/ble/ble-manager.js:136` | Wrapped in try/catch |
+| 195 | MEDIUM | `new URL(url)` in `will-navigate` unguarded — malformed URL crashes renderer | `electron/main.js:49-58` | Wrapped in try/catch |
+| 196 | **CRITICAL** | PWA `#loadSettings()` inverted map — `Object.values()` returns UUIDs, `getCharacteristic()` gets names instead of UUIDs. All settings reads fail. | `src/ble/web-bluetooth.js:282-287` | `Object.keys()` + direct map lookup |
+| 197 | HIGH | PWA `bleSetSetting()` inverted map — reverse lookup returns `undefined` | `src/ble/web-bluetooth.js:341` | Direct `settingsMap[name]` lookup |
+| 198 | MEDIUM | PWA scanning state stuck `true` when browser dialog cancelled | `src/hooks/usePinecil.js:237` | Always-on safety timeout (12s) |
+| 199 | LOW | `console.log` in Electron stateChange handler | `electron/ble/ble-manager.js:88` | → `console.debug` |
+| 200 | LOW | `console.log` in Electron reconnect message | `electron/ble/ble-manager.js:149` | → `console.debug` |
+| 201 | LOW | `console.log` in Electron before-quit handler | `electron/main.js:122` | → `console.debug` |
+| 202 | LOW | Missing null check on `encodeSetting()` in `bleSetSetting()` | `src/ble/web-bluetooth.js:358` | Added null guard |
+| 203 | HIGH | PWA `bleSaveToFlash()` inverted map for save_to_flash UUID | `src/ble/web-bluetooth.js:385` | Direct map lookup |
 
 ---
 

@@ -128,6 +128,8 @@ const VALUE_LIMITS = {
   BLEEnabled:            [0, 1],
   PDNegTimeout:          [0, 50],
   ColourInversion:       [0, 1],
+  PDVpdoEnabled:         [0, 1],
+  UILanguage:            [0, 15],
 };
 
 module.exports = {

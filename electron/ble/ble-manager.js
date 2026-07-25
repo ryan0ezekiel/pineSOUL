@@ -85,7 +85,7 @@ class BleManager {
     }
     this._boundHandlers = {
       stateChange: (state) => {
-        console.log('BLE state:', state);
+        console.debug('BLE state:', state);
         this._emit('stateChange', state);
       },
       discover: (peripheral) => {
@@ -133,7 +133,7 @@ class BleManager {
 
     // Auto-stop after 10 seconds
     this._scanTimeout = setTimeout(() => {
-      noble.stopScanning();
+      try { noble.stopScanning(); } catch (e) {}
       this.scanning = false;
       this._scanTimeout = null;
       this._emit('scanning', false);
@@ -146,7 +146,7 @@ class BleManager {
 
     // Disconnect existing connection before attempting a new one
     if (this.connected && this.device) {
-      console.log('Disconnecting existing device before new connection');
+      console.debug('Disconnecting existing device before new connection');
       await this.disconnect('reconnecting');
     }
 
