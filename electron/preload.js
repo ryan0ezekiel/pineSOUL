@@ -18,8 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   bleScan: () => ipcRenderer.invoke('ble:scan'),
   bleConnect: (address) => ipcRenderer.invoke('ble:connect', address),
   bleDisconnect: () => ipcRenderer.invoke('ble:disconnect'),
-  bleGetLiveData: () => ipcRenderer.invoke('ble:getLiveData'),
-  bleGetSettings: () => ipcRenderer.invoke('ble:getSettings'),
+
   bleSetSetting: (name, value) => ipcRenderer.invoke('ble:setSetting', name, value),
   bleSaveToFlash: () => ipcRenderer.invoke('ble:saveToFlash'),
 
@@ -29,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDeviceFound: (callback) => onChannel('ble:deviceFound', callback),
   onSettingsLoaded: (callback) => onChannel('ble:settingsLoaded', callback),
   onError: (callback) => onChannel('ble:error', callback),
+  onScanning: (callback) => onChannel('ble:scanning', callback),
 
   // Remove all listeners from a known BLE channel
   removeAllListeners: (channel) => {

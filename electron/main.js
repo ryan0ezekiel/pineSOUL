@@ -1,12 +1,6 @@
-const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { BleManager } = require('./ble/ble-manager.js');
-
-// ─── HiDPI / High-DPI support ───────────────────────────────────
-// Enable per-pixel antialiasing and proper device-pixel-ratio detection
-app.commandLine.appendSwitch('enable-high-dpi-support');
-app.commandLine.appendSwitch('enable-features', 'UseSkiaRenderer');
-app.commandLine.appendSwitch('high-dpi-support', '1');
 
 let mainWindow;
 const isDev = !app.isPackaged;
@@ -25,6 +19,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
     show: false,
   });
@@ -39,7 +34,11 @@ function createWindow() {
   }
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
-  mainWindow.on('closed', () => { mainWindow = null; ble.setWindow(null); ble.destroy(); });
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+    ble.setWindow(null);
+    (async () => { await ble.destroy(); })();
+  });
 }
 
 // ─── Window Controls ────────────────────────────────────────────────
@@ -69,23 +68,6 @@ ipcMain.handle('ble:connect', async (_, address) => {
 ipcMain.handle('ble:disconnect', async () => {
   try { await ble.disconnect(); return { ok: true }; }
   catch (e) { return { ok: false, error: e.message }; }
-});
-
-ipcMain.handle('ble:reconnect', async (_, address) => {
-  try {
-    const info = await ble.reconnect(address);
-    return { ok: true, info };
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
-});
-
-ipcMain.handle('ble:getLiveData', () => {
-  return ble.getLiveData();
-});
-
-ipcMain.handle('ble:getSettings', () => {
-  return ble.getSettings();
 });
 
 ipcMain.handle('ble:setSetting', async (_, name, value) => {

@@ -28,28 +28,8 @@ class BleManager {
     this._pollingInterval = options.pollingInterval || 500;
     this._disconnecting = false; // guard against re-entrant disconnect
     this._boundHandlers = null; // stored for cleanup on destroy
-    // Bind noble events
-    if (noble) {
-      this._boundHandlers = {
-        stateChange: (state) => {
-          console.log('BLE state:', state);
-          this._emit('stateChange', state);
-        },
-        discover: (peripheral) => {
-          if (peripheral.advertisement?.localName?.toLowerCase().includes('pinecil')) {
-            this._emit('deviceFound', {
-              name: peripheral.advertisement.localName,
-              address: peripheral.address,
-              rssi: peripheral.rssi,
-              id: peripheral.id,
-            });
-          }
-        },
-      };
-
-      noble.on('stateChange', this._boundHandlers.stateChange);
-      noble.on('discover', this._boundHandlers.discover);
-    }
+    // Bind noble events (can be re-bound via reinitialize())
+    this.#bindNobleEvents();
   }
 
   /**
@@ -68,8 +48,11 @@ class BleManager {
     return this._lastSettings;
   }
 
+
   /** Remove noble event listeners — call on app shutdown */
-  destroy() {
+  async destroy() {
+    // Disconnect any active peripheral first (BUG #5: macOS stays alive after close)
+    await this.disconnect('window_closed');
     if (noble && this._boundHandlers) {
       noble.removeListener('stateChange', this._boundHandlers.stateChange);
       noble.removeListener('discover', this._boundHandlers.discover);
@@ -84,6 +67,40 @@ class BleManager {
 
   setWindow(win) {
     this.window = win;
+    // Re-bind noble events when a new window is created (BUG #4: macOS reopen)
+    this.reinitialize();
+  }
+  /** Re-bind noble event listeners after destroy() — safe for singleton reuse */
+  reinitialize() {
+    this.#bindNobleEvents();
+  }
+
+  /** (private) Bind noble stateChange and discover handlers */
+  #bindNobleEvents() {
+    if (!noble) return;
+    // Remove any existing bindings first to avoid duplicates
+    if (this._boundHandlers) {
+      noble.removeListener('stateChange', this._boundHandlers.stateChange);
+      noble.removeListener('discover', this._boundHandlers.discover);
+    }
+    this._boundHandlers = {
+      stateChange: (state) => {
+        console.log('BLE state:', state);
+        this._emit('stateChange', state);
+      },
+      discover: (peripheral) => {
+        if (peripheral.advertisement?.localName?.toLowerCase().includes('pinecil')) {
+          this._emit('deviceFound', {
+            name: peripheral.advertisement.localName,
+            address: peripheral.address,
+            rssi: peripheral.rssi,
+            id: peripheral.id,
+          });
+        }
+      },
+    };
+    noble.on('stateChange', this._boundHandlers.stateChange);
+    noble.on('discover', this._boundHandlers.discover);
   }
 
   _emit(channel, data) {
@@ -214,38 +231,6 @@ class BleManager {
     }
   }
 
-  /**
-   * Attempt to reconnect to a device with retries
-   * @param {string} address - BLE device address
-   * @param {number} [attempts=3] - Maximum number of retry attempts
-   * @param {number} [delayMs=2000] - Delay between attempts in milliseconds
-   * @returns {Promise<Object>} Device info
-   */
-  async reconnect(address, attempts = 3, delayMs = 2000) {
-    let lastError;
-
-    for (let attempt = 1; attempt <= attempts; attempt++) {
-      try {
-        // Disconnect first if still connected from a previous attempt
-        if (this.device || this.connected) {
-          await this.disconnect();
-        }
-        return await this.connect(address);
-      } catch (e) {
-        lastError = e;
-        console.warn(`Reconnect attempt ${attempt}/${attempts} failed for ${address}:`, e.message);
-        if (attempt < attempts) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-      }
-    }
-
-    const err = new Error(
-      `Failed to reconnect to ${address} after ${attempts} attempts: ${lastError?.message}`
-    );
-    this._emit('error', { type: 'reconnect', message: err.message, address, attempts });
-    throw err;
-  }
 
   async disconnect(reason = 'user') {
     if (this._disconnecting) return; // prevent re-entrant disconnect

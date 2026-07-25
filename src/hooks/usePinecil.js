@@ -186,6 +186,11 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       addToast(err.message || String(err), 'error');
     });
     if (unsub5) unsubs.push(unsub5);
+    // Sync scanning state from Electron backend (fixes desync with setTimeout)
+    const unsub6 = api.onScanning?.((isScanning) => {
+      setScanning(isScanning);
+    });
+    if (unsub6) unsubs.push(unsub6);
 
     listenersRef.current = unsubs;
 
@@ -219,7 +224,11 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     } catch (e) {
       addToast('Scan failed: ' + (e.message || e), 'error');
     }
-    scanTimeoutRef.current = setTimeout(() => setScanning(false), 10000);
+    // In Electron, backend emits ble:scanning events to control state.
+    // Only use setTimeout fallback for PWA (Web Bluetooth, no backend events).
+    if (!api) {
+      scanTimeoutRef.current = setTimeout(() => setScanning(false), 10000);
+    }
   }, [addToast]);
 
   // Connect
@@ -345,6 +354,18 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     };
   }, []);
+
+  // BUG #6: Clear scanning state + timeout when device connects,
+  // so the UI doesn't stay stuck "scanning" for up to 10s after connection.
+  useEffect(() => {
+    if (connection === 'connected') {
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current);
+        scanTimeoutRef.current = null;
+      }
+      setScanning(false);
+    }
+  }, [connection]);
 
   // ─── Format helpers (memoized) ──────────────────────────
   const formatVoltage = useCallback((raw) => {

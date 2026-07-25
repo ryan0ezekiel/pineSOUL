@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 8 — v1.1.0  
-**Status:** 97 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
+**Last Updated:** Loop 9 — v1.1.1  
+**Status:** 104 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
 
 ---
 
@@ -153,3 +153,17 @@
 | 122 | LOW | hooks/usePinecil.js | disconnect() now clears dirtySettings, settings, settingsChanged, pendingSettings |
 | 123 | LOW | TemperatureGraph.jsx | Extracted nomWidth=600 to module-level constant, removed duplicate definitions |
 | — | LOW | 7 component files | Removed stale `React` from named imports (Vite automatic JSX runtime handles it) |
+
+## v1.1.1 — Loop 9 (2026-07-25)
+
+**7 bugs fixed** — macOS lifecycle, dead IPC removal, scanning desync, security hardening.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 124 | HIGH | ble-manager.js + main.js | Noble event handlers extracted to #bindNobleEvents(); reinitialize() method re-binds on window reopen (macOS fix) |
+| 125 | HIGH | ble-manager.js + main.js | destroy() now async; disconnects peripheral before cleanup (orphaned connection fix) |
+| 126 | MEDIUM | main.js + preload.js | Removed dead ble:reconnect IPC handler and BleManager.reconnect() method |
+| 127 | MEDIUM | main.js + preload.js | Removed dead ble:getLiveData, ble:getSettings IPC handlers and preload methods |
+| 128 | MEDIUM | preload.js + usePinecil.js | Exposed onScanning(); renderer uses backend scanning events instead of local timeout |
+| 129 | LOW | usePinecil.js | Clear scanTimeoutRef when connection state changes to 'connected' |
+| 130 | LOW | main.js | Removed dead globalShortcut import, deprecated HiDPI Chromium switches; added sandbox: true |
