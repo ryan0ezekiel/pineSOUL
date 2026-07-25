@@ -84,91 +84,91 @@ export default memo(function TemperatureGraph({
     plotWidth,
     plotHeight,
   } = useMemo(() => {
-    const padding = { top: 16, right: 16, bottom: 28, left: 48 };
-    const pTop = padding.top;
-    const pRight = padding.right;
-    const pBottom = padding.bottom;
-    const pLeft = padding.left;
+      const padding = { top: 16, right: 16, bottom: 28, left: 48 };
+      const pTop = padding.top;
+      const pRight = padding.right;
+      const pBottom = padding.bottom;
+      const pLeft = padding.left;
 
-    const nomWidth = NOMINAL_WIDTH;
-    const nomHeight = height;
-    const plotW = nomWidth - pLeft - pRight;
-    const plotH = nomHeight - pTop - pBottom;
+      const nomWidth = NOMINAL_WIDTH;
+      const nomHeight = height;
+      const plotW = nomWidth - pLeft - pRight;
+      const plotH = nomHeight - pTop - pBottom;
 
-    // ── Filter history to time window ──────────────────────────────────
-    const now = Date.now();
-    const cutoff = now - windowSeconds * 1000;
-    const filtered = history.filter((d) => d.timestamp >= cutoff);
-    const sorted = [...filtered].sort((a, b) => a.timestamp - b.timestamp);
+      // ── Filter history to time window ──────────────────────────────────
+      const now = Date.now();
+      const cutoff = now - windowSeconds * 1000;
+      const filtered = history.filter((d) => d.timestamp >= cutoff);
+      const sorted = filtered.sort((a, b) => a.timestamp - b.timestamp);
 
-    // ── Y range ────────────────────────────────────────────────────────
-    const allTemps = sorted.flatMap((d) => [d.liveTemp ?? 0, d.setTemp ?? 0]);
-    const dataMax = allTemps.length > 0
-      ? allTemps.reduce((a, b) => Math.max(a, b), 0)
-      : 0;
-    const { ticks: yTickValues, max: computedMax } = generateTicks(dataMax || 4500);
-    const finalMax = Math.max(computedMax, dataMax, 1);
-    const yScale = (v) => pTop + plotH - (v / finalMax) * plotH;
+      // ── Y range ────────────────────────────────────────────────────────
+      const allTemps = sorted.flatMap((d) => [d.liveTemp ?? 0, d.setTemp ?? 0]);
+      const dataMax = allTemps.length > 0
+        ? allTemps.reduce((a, b) => Math.max(a, b), 0)
+        : 0;
+      const { ticks: yTickValues, max: computedMax } = generateTicks(dataMax || 4500);
+      const finalMax = Math.max(computedMax, dataMax, 1);
+      const yScale = (v) => pTop + plotH - (v / finalMax) * plotH;
 
-    // ── X scale ────────────────────────────────────────────────────
-    const timeEnd = sorted.length > 0 ? sorted[sorted.length - 1].timestamp : now;
-    const timeStart = timeEnd - windowSeconds * 1000;
-    const timeRange = timeEnd - timeStart || 1; // avoid div-by-zero with single point
-    const xScale = (t) => pLeft + ((t - timeStart) / timeRange) * plotW;
+      // ── X scale ────────────────────────────────────────────────────
+      const timeEnd = sorted.length > 0 ? sorted[sorted.length - 1].timestamp : now;
+      const timeStart = timeEnd - windowSeconds * 1000;
+      const timeRange = timeEnd - timeStart || 1; // avoid div-by-zero with single point
+      const xScale = (t) => pLeft + ((t - timeStart) / timeRange) * plotW;
 
-    // ── Build points ───────────────────────────────────────────────────
-    const tempPoints = sorted
-      .filter((d) => d.liveTemp != null)
-      .map((d) => ({ x: xScale(d.timestamp), y: yScale(d.liveTemp) }));
-    const setPoints = sorted
-      .filter((d) => d.setTemp != null)
-      .map((d) => ({ x: xScale(d.timestamp), y: yScale(d.setTemp) }));
+      // ── Build points ───────────────────────────────────────────────────
+      const tempPoints = sorted
+        .filter((d) => d.liveTemp != null)
+        .map((d) => ({ x: xScale(d.timestamp), y: yScale(d.liveTemp) }));
+      const setPoints = sorted
+        .filter((d) => d.setTemp != null)
+        .map((d) => ({ x: xScale(d.timestamp), y: yScale(d.setTemp) }));
 
-    const pathD = smoothPath(tempPoints);
-    const targetD = smoothPath(setPoints);
+      const tempPathD = smoothPath(tempPoints);
+      const targetPathD = smoothPath(setPoints);
 
-    // ── Area fill ──────────────────────────────────────────────────────
-    let areaD = '';
-    if (tempPoints.length >= 2) {
-      const bottomY = yScale(0);
-      areaD = smoothPath(tempPoints);
-      areaD += ` L ${tempPoints[tempPoints.length - 1].x} ${bottomY}`;
-      areaD += ` L ${tempPoints[0].x} ${bottomY} Z`;
-    }
+      // ── Area fill ──────────────────────────────────────────────────────
+      let areaD = '';
+      if (tempPoints.length >= 2) {
+        const bottomY = yScale(0);
+        areaD = tempPathD;
+        areaD += ` L ${tempPoints[tempPoints.length - 1].x} ${bottomY}`;
+        areaD += ` L ${tempPoints[0].x} ${bottomY} Z`;
+      }
 
-    // ── X-axis time labels ─────────────────────────────────────────────
-    const labelIntervals = [];
-    const totalSec = windowSeconds;
-    const stepSec = totalSec / 5;
-    for (let i = 0; i <= 5; i++) {
-      const secAgo = totalSec - i * stepSec;
-      labelIntervals.push({
-        label: formatTimeLabel(Math.round(secAgo)),
-        x: pLeft + (i / 5) * plotW,
-      });
-    }
+      // ── X-axis time labels ─────────────────────────────────────────────
+      const labelIntervals = [];
+      const totalSec = windowSeconds;
+      const stepSec = totalSec / 5;
+      for (let i = 0; i <= 5; i++) {
+        const secAgo = totalSec - i * stepSec;
+        labelIntervals.push({
+          label: formatTimeLabel(Math.round(secAgo)),
+          x: pLeft + (i / 5) * plotW,
+        });
+      }
 
-    // ── Y-axis grid / labels ───────────────────────────────────────────
-    const yGridLines = yTickValues.map((v) => ({
-      value: v,
-      y: yScale(v),
-    }));
+      // ── Y-axis grid / labels ───────────────────────────────────────────
+      const yGridLines = yTickValues.map((v) => ({
+        value: v,
+        y: yScale(v),
+      }));
 
-    return {
-      pathData: pathD,
-      areaData: areaD,
-      targetPathData: targetD,
-      xLabels: labelIntervals,
-      yTicks: yGridLines,
-      yMax: finalMax,
-      bottom: pBottom,
-      left: pLeft,
-      right: pRight,
-      top: pTop,
-      plotWidth: plotW,
-      plotHeight: plotH,
-    };
-  }, [history, windowSeconds, height, formatTemp]);
+      return {
+        pathData: tempPathD,
+        areaData: areaD,
+        targetPathData: targetPathD,
+        xLabels: labelIntervals,
+        yTicks: yGridLines,
+        yMax: finalMax,
+        bottom: pBottom,
+        left: pLeft,
+        right: pRight,
+        top: pTop,
+        plotWidth: plotW,
+        plotHeight: plotH,
+      };
+      }, [history, windowSeconds, height]);
 
   return (
     <motion.div

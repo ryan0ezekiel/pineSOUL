@@ -35,7 +35,10 @@ export function parseLiveData(buffer) {
   const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
   const fields = LIVE_DATA_FIELDS;
   const values = {};
-  for (let i = 0; i < Math.min(14, fields.length); i++) {
+  const maxValues = Math.min(14, fields.length);
+  for (let i = 0; i < maxValues; i++) {
+    // Add bounds check to prevent buffer overflow
+    if (i * 4 + 4 > raw.byteLength) break;
     values[fields[i]] = view.getUint32(i * 4, true);
   }
   return values;
@@ -47,6 +50,7 @@ export function parseSetting(buffer) {
   const raw = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   if (!raw || raw.byteLength < 2) return null;
   const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+  // Add bounds check to prevent buffer overflow
   return view.getUint16(0, true); // little-endian uint16 (matches Electron)
 }
 

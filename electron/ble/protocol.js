@@ -54,9 +54,10 @@ class PinecilProtocol {
     const raw = new Uint8Array(buffer);
     const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     const values = {};
-    const numValues = Math.floor(buffer.length / 4);
-
-    for (let i = 0; i < Math.min(numValues, LIVE_DATA_FIELDS.length); i++) {
+    const maxValues = Math.min(14, LIVE_DATA_FIELDS.length);
+    for (let i = 0; i < maxValues; i++) {
+      // Add bounds check to prevent buffer overflow - ensure we don't read beyond buffer
+      if (i * 4 + 4 > raw.byteLength) break;
       values[LIVE_DATA_FIELDS[i]] = view.getUint32(i * 4, true); // little-endian
     }
 

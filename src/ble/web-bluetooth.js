@@ -68,24 +68,11 @@ export class WebBleAdapter {
     try {
       this.#scanning = true;
       this.#emit('scanning', true);
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: [SERVICES.SETTINGS_V221] },
-          { services: [SERVICES.SETTINGS_V220] },
-        ],
-        optionalServices: [
-          SERVICES.SETTINGS_V220,
-          SERVICES.SETTINGS_V221,
-          SERVICES.BULK_DATA_V220,
-          SERVICES.BULK_DATA_V221,
-          '9eae1adb-9d0d-48c5-a6e7-ae93f0ea37b0',
-          '9eae1000-9d0d-48c5-aa55-33e27f9bc533',
-        ],
-      });
 
       // Remove previous disconnect listener to prevent accumulation
       if (this.#device && this._disconnectHandler) {
         this.#device.removeEventListener('gattserverdisconnected', this._disconnectHandler);
+        this._disconnectHandler = null;
       }
 
       this.#device = device;
@@ -106,13 +93,21 @@ export class WebBleAdapter {
     } catch (e) {
       this.#scanning = false;
       this.#emit('scanning', false);
+
       if (e.name === 'NotFoundError') {
         // User cancelled the picker — not an error
         return { ok: false, error: 'No device selected' };
       }
-      console.error('BLE scan error:', e);
-      this.#emit('error', { message: e.message || String(e) });
-      return { ok: false, error: e.message || String(e) };
+
+      // Sanitize error before emission
+      const safeError = {
+        message: e.message || String(e),
+        stack: process.env.NODE_ENV === 'development' ? e.stack : undefined
+      };
+
+      console.error('BLE scan error:', safeError);
+      this.#emit('error', safeError);
+      return { ok: false, error: safeError.message };
     }
   }
 
@@ -269,6 +264,7 @@ export class WebBleAdapter {
       const settingsService = await withTimeout(
         this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
       );
+
       const settings = {};
 
       const settingNames = Object.values(this.#settingsMap).filter(n => n !== 'save_to_flash' && n !== 'SettingsReset');
@@ -339,10 +335,10 @@ export class WebBleAdapter {
         const settingsServiceUUID = this.#version === 'v2.21'
           ? SERVICES.SETTINGS_V221
           : SERVICES.SETTINGS_V220;
-        const settingsService = await withTimeout(
+      const settingsService = await withTimeout(
         this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
       );
-        this.#settingsChars[name] = await settingsService.getCharacteristic(uuid);
+      this.#settingsChars[name] = await settingsService.getCharacteristic(uuid);
       }
 
       const encoded = encodeSetting(value);

@@ -83,8 +83,8 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
     const step = isTemp && (limits[1] - limits[0]) > 50 ? 10 : 1;
     // BLE sends temps in 0.1°C; display as °C for temperature settings
     const displayValue = meta.format
-      ? meta.format(value ?? 0)
-      : isTemp ? Math.round((value ?? 0) / 10) : (value ?? 0);
+    ? meta.format(value ?? 0)
+    : isTemp ? Math.round((value ?? 0) / 10) : (value ?? 0);
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
         <div className="flex items-center gap-2">
@@ -185,11 +185,10 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
   const isHotkeyGroup = groupKey === 'hotkeys';
   const isAppGroup = groupKey === 'app';
 
-  const groupSettings = !isSpecialGroup
-    ? Object.entries(SETTING_META)
+  if (isSpecialGroup) return [];
+    return Object.entries(SETTING_META)
         .filter(([_, m]) => m.group === groupKey && !HIDDEN_SETTINGS.has(_))
-        .map(([name, meta]) => ({ name, meta }))
-    : [];
+        .map(([name, meta]) => ({ name, meta }));
 
   if (groupSettings.length === 0 && !isSpecialGroup) return null;
 

@@ -483,10 +483,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     }
   }, [mock, addToast, formatTemp]);
 
-  const tempUnitLabel = settings.TemperatureUnit === 1 ? '°F' : '°C';
-  const displayUnit = tempUnitLabel;
-
-  // Derived data
+  // Derive data
   const mode = MODE_MAP[liveData.OperatingMode] || MODE_MAP[0];
   const currentTempPercent = liveData.MaxTipTempAbility > 0
     ? (liveData.LiveTemp / liveData.MaxTipTempAbility) * 100
