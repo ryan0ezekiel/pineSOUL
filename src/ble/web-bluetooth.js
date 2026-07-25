@@ -76,8 +76,9 @@ export class WebBleAdapter {
       }
 
       // Show browser-native BLE device picker
+      // acceptAllDevices: true shows all nearby BLE devices (Pinecil has no standard filter service)
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [] }],
+        acceptAllDevices: true,
         optionalServices: [
           // Settings services (v2.20 and v2.21)
           'f6d75f91-5a10-4eba-a233-47d3f26a907f',
