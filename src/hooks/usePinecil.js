@@ -208,16 +208,18 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   }, [connection]);
 
   // Scanning
+  const scanTimeoutRef = useRef(null);
   const startScan = useCallback(async () => {
     setDevices([]);
     setScanning(true);
     setConnectionError(null);
+    if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
     try {
       await api?.bleScan();
     } catch (e) {
       addToast('Scan failed: ' + (e.message || e), 'error');
     }
-    setTimeout(() => setScanning(false), 10000);
+    scanTimeoutRef.current = setTimeout(() => setScanning(false), 10000);
   }, [addToast]);
 
   // Connect
@@ -318,6 +320,13 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   useEffect(() => {
     liveDataRef.current = liveData;
   }, [liveData]);
+
+  // Clean up scanning timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
+    };
+  }, []);
 
   // ─── Format helpers (memoized) ──────────────────────────
   const formatVoltage = useCallback((raw) => {

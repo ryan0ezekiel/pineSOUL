@@ -164,7 +164,7 @@ export default memo(function TemperatureGraph({
       plotWidth: plotW,
       plotHeight: plotH,
     };
-  }, [history, windowSeconds, height]);
+  }, [history, windowSeconds, height, formatTemp]);
 
   const nomWidth = 600;
 

@@ -10,6 +10,16 @@ import {
   detectVersion, getSettingsMap, getBulkMap,
 } from './protocol.js';
 
+// Timeout wrapper — prevents Web BLE calls from hanging indefinitely
+function withTimeout(promise, ms, label = 'BLE operation') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
+    ),
+  ]);
+}
+
 export class WebBleAdapter {
   #device = null;
   #server = null;
@@ -21,7 +31,6 @@ export class WebBleAdapter {
   #settingsChars = {};
   #saveChar = null;
   #connected = false;
-  #settingsVersion = null; // for decode/encode on write
 
   // ── Event system (matches Electron preload pattern) ────────────────
   on(event, callback) {
@@ -111,6 +120,11 @@ export class WebBleAdapter {
     return { ok: false, error: 'No device selected. Click Scan first.' };
   }
 
+  // ── Reconnect (delegates to bleConnect for Web BLE) ──────────────
+  async bleReconnect(address) {
+    return this.bleConnect(address);
+  }
+
   async #doConnect() {
     try {
       this.#emit('connectionChange', { status: 'connecting' });
@@ -126,10 +140,14 @@ export class WebBleAdapter {
         this.#device.gatt.disconnect();
       }
 
-      this.#server = await this.#device.gatt.connect();
+      this.#server = await withTimeout(
+        this.#device.gatt.connect(), 10000, 'GATT connect'
+      );
 
-      // Detect firmware version from available services
-      const services = await this.#server.getPrimaryServices();
+      // Detect firmware version from available services (timeout: 10s)
+      const services = await withTimeout(
+        this.#server.getPrimaryServices(), 10000, 'Service discovery'
+      );
       const serviceUUIDs = services.map(s => s.uuid);
 
       this.#version = detectVersion(serviceUUIDs);
@@ -195,8 +213,12 @@ export class WebBleAdapter {
       const bulkServiceUUID = this.#version === 'v2.21'
         ? SERVICES.BULK_DATA_V221
         : SERVICES.BULK_DATA_V220;
-      const bulkService = await this.#server.getPrimaryService(bulkServiceUUID);
-      this.#bulkDataChar = await bulkService.getCharacteristic(bulkUUID);
+      const bulkService = await withTimeout(
+        this.#server.getPrimaryService(bulkServiceUUID), 10000, 'Bulk data service'
+      );
+      this.#bulkDataChar = await withTimeout(
+        bulkService.getCharacteristic(bulkUUID), 10000, 'Bulk data characteristic'
+      );
 
       await this.#bulkDataChar.startNotifications();
 
@@ -223,7 +245,9 @@ export class WebBleAdapter {
         ? SERVICES.SETTINGS_V221
         : SERVICES.SETTINGS_V220;
 
-      const settingsService = await this.#server.getPrimaryService(settingsServiceUUID);
+      const settingsService = await withTimeout(
+        this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
+      );
       const settings = {};
 
       const settingNames = Object.values(this.#settingsMap).filter(n => n !== 'save_to_flash' && n !== 'SettingsReset');
@@ -284,7 +308,9 @@ export class WebBleAdapter {
         const settingsServiceUUID = this.#version === 'v2.21'
           ? SERVICES.SETTINGS_V221
           : SERVICES.SETTINGS_V220;
-        const settingsService = await this.#server.getPrimaryService(settingsServiceUUID);
+        const settingsService = await withTimeout(
+        this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
+      );
         this.#settingsChars[name] = await settingsService.getCharacteristic(uuid);
       }
 
@@ -311,7 +337,9 @@ export class WebBleAdapter {
       const settingsServiceUUID = this.#version === 'v2.21'
         ? SERVICES.SETTINGS_V221
         : SERVICES.SETTINGS_V220;
-      const settingsService = await this.#server.getPrimaryService(settingsServiceUUID);
+      const settingsService = await withTimeout(
+        this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
+      );
       const saveUUID = Object.keys(this.#settingsMap).find(k => this.#settingsMap[k] === 'save_to_flash');
       if (saveUUID) {
         this.#saveChar = await settingsService.getCharacteristic(saveUUID);

@@ -78,9 +78,10 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
   }
 
   if (limits) {
-    const step = (limits[1] - limits[0]) > 50 ? 10 : 1;
-    // BLE sends temps in 0.1°C; display as °C for temperature settings
+    // Smart step: temperature settings (unit °) use 10 (=1°C), others use 1
     const isTemp = meta.unit === '°';
+    const step = isTemp && (limits[1] - limits[0]) > 50 ? 10 : 1;
+    // BLE sends temps in 0.1°C; display as °C for temperature settings
     const displayValue = isTemp ? Math.round((value ?? 0) / 10) : (value ?? 0);
     const displayMin = isTemp ? Math.round(limits[0] / 10) : limits[0];
     const displayMax = isTemp ? Math.round(limits[1] / 10) : limits[1];
