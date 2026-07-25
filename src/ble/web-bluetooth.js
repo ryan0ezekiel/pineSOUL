@@ -75,6 +75,19 @@ export class WebBleAdapter {
         this._disconnectHandler = null;
       }
 
+      // Show browser-native BLE device picker
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: [] }],
+        optionalServices: [
+          // Settings services (v2.20 and v2.21)
+          'f6d75f91-5a10-4eba-a233-47d3f26a907f',
+          'f6d80000-5a10-4eba-aa55-33e27f9bc533',
+          // Bulk data services (v2.20 and v2.21)
+          '9eae1adb-9d0d-48c5-a6e7-ae93f0ea37b0',
+          '9eae1000-9d0d-48c5-aa55-33e27f9bc533',
+        ],
+      });
+
       this.#device = device;
 
       this.#emit('deviceFound', {
@@ -335,10 +348,10 @@ export class WebBleAdapter {
         const settingsServiceUUID = this.#version === 'v2.21'
           ? SERVICES.SETTINGS_V221
           : SERVICES.SETTINGS_V220;
-      const settingsService = await withTimeout(
-        this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
-      );
-      this.#settingsChars[name] = await settingsService.getCharacteristic(uuid);
+        const settingsService = await withTimeout(
+          this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
+        );
+        this.#settingsChars[name] = await settingsService.getCharacteristic(uuid);
       }
 
       const encoded = encodeSetting(value);

@@ -86,9 +86,20 @@ export default function App() {
   // ─── Global keyboard shortcut handler ─────────────────
   useEffect(() => {
     // Global unhandled promise rejection handler
+    // Only suppress noisy/redundant BLE rejections; let real errors surface
     const handleUnhandledRejection = (e) => {
-      console.error('Unhandled promise rejection:', e.reason);
-      e.preventDefault();
+      const reason = e.reason;
+      const msg = reason?.message || String(reason || '');
+      // Suppress known noisy patterns (BLE busy, user cancelled scan, etc.)
+      const isNoise = /NotFoundError|GATT|BLUETOOTH|AbortError|NetworkError|device.*(not|disconnected)/i.test(msg);
+      if (!isNoise) {
+        console.error('[pineSOUL] Unhandled rejection:', reason);
+        e.preventDefault();
+      } else {
+        // Still prevent but log quietly
+        console.debug('[pineSOUL] Suppressed BLE noise:', msg);
+        e.preventDefault();
+      }
     };
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 

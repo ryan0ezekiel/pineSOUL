@@ -448,7 +448,6 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       const current = prev.SetTemp || 3200;
       const newTemp = Math.min(current + stepVal, prev.MaxTipTempAbility || 4500);
       if (!mock && api) {
-        api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
         updateSetting('SetTemperature', newTemp);
       }
       return { ...prev, SetTemp: newTemp };
@@ -461,7 +460,6 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       const current = prev.SetTemp || 3200;
       const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
       if (!mock && api) {
-        api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
         updateSetting('SetTemperature', newTemp);
       }
       return { ...prev, SetTemp: newTemp };
