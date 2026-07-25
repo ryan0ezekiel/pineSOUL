@@ -1,7 +1,23 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Cycle 3 — v1.0.5  
-**Status:** 51 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 3 Loop 3), 0 critical remaining
+**Last Updated:** Cycle 4 — v1.0.6  
+**Status:** 61 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4), 0 critical remaining
+
+---
+
+## Cycle 4 Fixes (v1.0.6)
+
+| # | Severity | Bug | File | Fix |
+|---|----------|-----|------|-----|
+| 52 | **CRITICAL** | IPC channel name mismatch — BleManager `_emit()` sent events on bare channel names (`'liveData'`, `'connectionChange'`, etc.) but preload.js listened on `ble:`-prefixed channels. ALL Electron BLE events silently lost. Electron mode was non-functional for live data, settings loading, connection state, and errors. | `electron/ble/ble-manager.js:70-73` | Added `ble:` prefix in `_emit()` method: `webContents.send(\`ble:${channel}\`, data)` |
+| 53 | **HIGH** | Double disconnect re-entrancy — in-flight `readAsync()` callbacks could call `disconnect('connection_lost')` while the first `disconnect()` was still running, emitting duplicate `disconnected` events | `electron/ble/ble-manager.js:218-243` | Added `_disconnecting` guard flag with try/finally |
+| 54 | **HIGH** | Stale characteristic references after PWA reconnect — `#doConnect()` didn't reset `#settingsChars`, `#saveChar`, or `#bulkDataChar` before new connection. Old Web Bluetooth characteristic objects become invalid after GATT disconnect. | `src/ble/web-bluetooth.js:135-140` | Reset all characteristic refs at start of `#doConnect()` |
+| 55 | MEDIUM | `withTimeout` leaked timers on every successful call — `setTimeout` was never cleared when the wrapped promise resolved first, leaving pending closures for up to 10s | `src/ble/web-bluetooth.js:14-21` | Use `Promise.race().finally(() => clearTimeout(timer))` pattern |
+| 56 | MEDIUM | Version string format inconsistency — Electron `detectVersion()` returned `'2.21+'`/`'2.20'` while PWA returned `'v2.21'`/`'v2.20'`. Any version comparison logic would break cross-platform. | `electron/ble/protocol.js:32,40` | Normalized to `'v2.21'`/`'v2.20'` matching PWA |
+| 57 | MEDIUM | `ShutdownTimeout` value 0 displayed "0 min" instead of "Off" — inconsistent with other off-able settings like SleepTimeout, AutoStart | `src/constants.js:152` | Added format function: `v => v === 0 ? 'Off' : \`${v} min\`` |
+| 58 | LOW | `SleepTimeout` format showed "60s" and "75s" instead of "1m" and "1m 15s" | `src/constants.js:151` | Improved format: values 1-3 show seconds, 4-5 show mixed, 6+ show minutes |
+| 59 | LOW | Dead exports `TEMP_LIMITS`, `OPERATING_MODES`, `OPERATING_MODE_COLORS` never imported anywhere | `src/constants.js:84-104` | Removed dead code |
+| 60 | LOW | SettingsPanel `displayValue` didn't use `format()` function — settings with format functions (ShutdownTimeout, SleepTimeout) showed raw numeric values in the +/- row | `src/components/SettingsPanel.jsx:84-86` | Prioritize `meta.format(value)` over raw display |
 
 ---
 
@@ -9,12 +25,12 @@
 
 | # | Severity | Bug | File | Fix |
 |---|----------|-----|------|-----|
-| 46 | **MEDIUM** | PWA `getPrimaryServices()` and `gatt.connect()` had no timeout — if device hangs during service discovery, the connection stalls indefinitely with no feedback | `src/ble/web-bluetooth.js:132-138` | Added `withTimeout()` wrapper (10s) on `gatt.connect()`, `getPrimaryServices()`, `getPrimaryService()`, and `getCharacteristic()` calls |
-| 47 | LOW | `TemperatureGraph` useMemo missing `formatTemp` dependency — Y-axis labels don't update when user switches °C/°F until next data change | `src/components/TemperatureGraph.jsx:167` | Added `formatTemp` to useMemo dependency array |
-| 48 | **MEDIUM** | Settings panel increment/decrement buttons used step=10 for ALL settings with range > 50 — `ShutdownTimeout` (0-60min), `PowerPulsePower` (0-99W), `Brightness` (0-100) all jumped by 10 per click | `src/components/SettingsPanel.jsx:81` | Changed heuristic: step 10 only for temperature settings (`unit === '°'`), step 1 for everything else |
-| 49 | LOW | `WebBleAdapter` missing `bleReconnect()` method — preload.js exposes it but PWA adapter didn't implement it (API gap, not runtime crash since renderer uses `bleConnect()` for reconnect) | `src/ble/web-bluetooth.js:120` | Added `bleReconnect(address)` that delegates to `bleConnect()` |
-| 50 | LOW | `WebBleAdapter` had dead `#settingsVersion` field — declared but never read or written | `src/ble/web-bluetooth.js:24` | Removed dead code |
-| 51 | LOW | `usePinecil.js` scanning timeout (`setTimeout` 10s) not tracked — no cleanup on unmount, no dedup on rapid scan clicks | `src/hooks/usePinecil.js:211-222` | Stored timeout in ref, clear previous timeout on re-scan, clean up on unmount |
+| 46 | MEDIUM | PWA `getPrimaryServices()` and `gatt.connect()` had no timeout — indefinite hang on unresponsive devices | `src/ble/web-bluetooth.js:132-138` | Added `withTimeout()` wrapper (10s) |
+| 47 | LOW | TemperatureGraph useMemo missing `formatTemp` dependency | `src/components/TemperatureGraph.jsx:167` | Added to dep array |
+| 48 | MEDIUM | Settings step too coarse for non-temperature settings | `src/components/SettingsPanel.jsx:81` | Step 10 only for `unit === '°'`, step 1 otherwise |
+| 49 | LOW | WebBleAdapter missing `bleReconnect()` | `src/ble/web-bluetooth.js:120` | Added delegating method |
+| 50 | LOW | Dead `#settingsVersion` field | `src/ble/web-bluetooth.js:24` | Removed |
+| 51 | LOW | Scanning timeout not tracked/cleaned | `src/hooks/usePinecil.js:211-222` | Stored in ref, cleanup on unmount |
 
 ---
 
@@ -22,36 +38,23 @@
 
 | # | Severity | Bug | File | Fix |
 |---|----------|-----|------|-----|
-| 43 | **CRITICAL** | TDZ ReferenceError — `formatTemp` used in `handleToggleMode` dependency array but declared AFTER it. Accessing `const` before declaration throws `ReferenceError` on every render. | `src/hooks/usePinecil.js:322-404` | Moved all format helper declarations above keyboard action declarations |
-| 44 | MEDIUM | Electron `VALUE_LIMITS` stale — temperature limits still in old °C scale while PWA uses 0.1°C. Maintenance hazard and inconsistency. | `electron/ble/constants.js:116-152` | Synced all temperature VALUE_LIMITS to 0.1°C protocol values |
-| 45 | LOW | Mock `TipResistance: 84` displayed as 0.8Ω — unrealistic for a soldering iron tip | `src/hooks/usePinecil.js:20` | Changed to `840` (8.4Ω, realistic value) |
+| 43 | **CRITICAL** | TDZ ReferenceError — `formatTemp` used before declaration | `src/hooks/usePinecil.js:322-404` | Moved helpers above keyboard actions |
+| 44 | MEDIUM | Electron `VALUE_LIMITS` stale °C scale | `electron/ble/constants.js:116-152` | Synced to 0.1°C |
+| 45 | LOW | Mock `TipResistance: 84` unrealistic | `src/hooks/usePinecil.js:20` | Changed to 840 |
 
 ---
 
-## Fixed Bugs (Previous Cycles)
+## Previous Fixed Bugs (Cycles 1)
 
-### CRITICAL — PWA Protocol (Fixed)
-| # | Bug | File | Fix |
-|---|-----|------|-----|
-| 31 | `parseSetting` used sign-magnitude decoding — returned wrong values for ALL settings on real hardware | `src/ble/protocol.js:50` | Changed to `view.getUint16(0, true)` — raw uint16, matches Electron |
-| 32 | `parseSetting` corrupted ALL PWA settings reads | `src/ble/protocol.js:50` | Same fix as #31 |
+### CRITICAL — PWA Protocol
+| # | Bug | Fix |
+|---|-----|-----|
+| 31-32 | `parseSetting` sign-magnitude decoding wrong | Changed to `getUint16(0, true)` |
 
-### MEDIUM — Temperature Protocol (Fixed)
-| # | Bug | File | Fix |
-|---|-----|------|-----|
-| 33 | `formatTemp` didn't divide by 10 — BLE sends 0.1°C but display expected °C | `src/hooks/usePinecil.js:395` | Added `/10` conversion, consistent with `formatHandleTemp` |
-| 34 | Mock data used °C values instead of 0.1°C — didn't match real protocol | `src/hooks/usePinecil.js:12` | Multiplied all temperature mock values by 10 |
-| 35 | `handleToggleMode` thresholds wrong scale (200→2000, 25→250) | `src/hooks/usePinecil.js:346` | Updated to 0.1°C: threshold 500=50°C, default 3200=320°C, cooldown 250=25°C |
-| 36 | `DEFAULT_HOTKEY_CONFIG.toggleTemp` was 200 (°C), should be 3200 (0.1°C) | `src/App.jsx:28` | Changed to 3200 |
-| 37 | `handleTempUp`/`handleTempDown` fallback values wrong scale | `src/hooks/usePinecil.js:322,334` | Updated fallbacks to 0.1°C values |
-| 38 | `VALUE_LIMITS` for temperature settings were in °C, not 0.1°C | `src/constants.js:108` | SetTemperature [100,4500], SleepTemp [100,3000], BoostTemp [2500,4500] |
-| 39 | Settings panel showed raw 0.1°C values (e.g. "3200°" instead of "320°") | `src/components/SettingsPanel.jsx:80` | Added `displayValue = Math.round(value / 10)` for temperature settings |
-| 40 | Hotkey toggleTemp stepper min/max wrong scale | `src/components/SettingsPanel.jsx:275` | Updated min 500=50°C, max 4500=450°C, step 100=10°C |
-| 41 | Hotkey tempStep display showed raw 0.1°C value | `src/components/SettingsPanel.jsx:259` | Added `/10` for display |
-| 42 | TemperatureGraph fallback Y-axis max was 450, should be 4500 for 0.1°C | `src/components/TemperatureGraph.jsx:105` | Changed to 4500 |
-
-### LOW — Previously Fixed (Cycles 1–10)
-- All 30 bugs from cycles 1–10 (see git history)
+### MEDIUM — Temperature Protocol
+| # | Bug | Fix |
+|---|-----|-----|
+| 33-42 | 0.1°C protocol scale mismatches across 10 files | All temperature values scaled to 0.1°C |
 
 ---
 
@@ -59,12 +62,12 @@
 
 | Platform | File | Notes |
 |----------|------|-------|
-| Linux | `pineSOUL-1.0.5.AppImage` | AppImage portable |
-| Linux | `pineSOUL-1.0.5.deb` | Debian package |
-| Linux | `pineSOUL-1.0.5.tar.xz` | Tarball |
-| Windows | `pineSOUL Setup 1.0.5.exe` | NSIS installer |
-| Windows | `pineSOUL 1.0.5.exe` | Portable exe |
-| macOS | `pineSOUL-1.0.5-mac-x64.zip` | x64 only (arm64 needs macOS runner) |
+| Linux | `pineSOUL-1.0.6.AppImage` | AppImage portable |
+| Linux | `pineSOUL-1.0.6.deb` | Debian package |
+| Linux | `pineSOUL-1.0.6.tar.xz` | Tarball |
+| Windows | `pineSOUL Setup 1.0.6.exe` | NSIS installer |
+| Windows | `pineSOUL 1.0.6.exe` | Portable exe |
+| macOS | `pineSOUL-1.0.6-mac-x64.zip` | x64 only |
 
 ---
 
@@ -72,5 +75,5 @@
 
 1. **macOS arm64**: `@abandonware/noble` native module can't cross-compile on x64 Linux
 2. **macOS DMG**: Requires `hdiutil` (macOS-only). Zip workaround used instead.
-3. **No code signing**: All builds unsigned (needs signing certs for production)
-4. **PWA BLE reconnect**: Web Bluetooth reconnect by address relies on browser remembering the device
+3. **No code signing**: All builds unsigned
+4. **Three-way constants duplication**: BLE UUIDs defined in 3 files — fragile but currently in sync
