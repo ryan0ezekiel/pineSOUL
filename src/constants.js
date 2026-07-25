@@ -117,8 +117,10 @@ export const VALUE_LIMITS = {
   LOGOTime:              [0, 5],
   CalibrateCJC:          [0, 1],
   BLEEnabled:            [0, 1],
+  PDVpdoEnabled:         [0, 1],
   PDNegTimeout:          [0, 50],
   ColourInversion:       [0, 1],
+  UILanguage:            [0, 15],
 };
 
 // ─── Setting Display Metadata ────────────────────────────────────────

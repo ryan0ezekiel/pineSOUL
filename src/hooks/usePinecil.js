@@ -116,7 +116,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     if (!mock) return;
     const timer = setTimeout(() => {
       setConnection('connected');
-      setDeviceInfo({ name: 'pinecil-42CF656F', firmwareVersion: 'v2.21' });
+      setDeviceInfo({ name: 'pinecil-42CF656F', build: 'v2.21', firmwareVersion: 'v2.21' });
       setLiveData(MOCK_LIVE_DATA);
       setSettings(MOCK_SETTINGS);
     }, 500);
@@ -273,12 +273,14 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   // Reconnect
   const reconnect = useCallback(async () => {
     if (!deviceInfo?.address) return;
+    // Capture address at call-time to avoid stale closure over deviceInfo
+    const targetAddress = deviceInfo.address;
     addToast('Reconnecting...', 'info');
     let success = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
       try {
-        const result = await api?.bleConnect(deviceInfo.address);
+        const result = await api?.bleConnect(targetAddress);
         if (result?.ok) {
           success = true;
           break;

@@ -10,8 +10,10 @@ export default memo(function TemperatureDial({ liveData, mode, currentTempPercen
   const currentTemp = liveData?.LiveTemp || 0;
   const setTemp = liveData?.SetTemp || 0;
 
-  const currentOffset = CIRCUMFERENCE - (currentTempPercent / 100) * CIRCUMFERENCE;
-  const setOffset = CIRCUMFERENCE - (setTempPercent / 100) * CIRCUMFERENCE;
+  const clampedCurrent = Math.min(100, Math.max(0, currentTempPercent || 0));
+  const clampedSet = Math.min(100, Math.max(0, setTempPercent || 0));
+  const currentOffset = CIRCUMFERENCE - (clampedCurrent / 100) * CIRCUMFERENCE;
+  const setOffset = CIRCUMFERENCE - (clampedSet / 100) * CIRCUMFERENCE;
 
   // Background tick marks
   const ticks = useMemo(() => {

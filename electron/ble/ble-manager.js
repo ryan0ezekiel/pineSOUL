@@ -104,9 +104,12 @@ class BleManager {
   }
 
   _emit(channel, data) {
-    if (this.window && !this.window.isDestroyed()) {
-      // preload.js listens on 'ble:' prefixed channels
-      this.window.webContents.send(`ble:${channel}`, data);
+    try {
+      if (this.window && !this.window.isDestroyed()) {
+        this.window.webContents.send(`ble:${channel}`, data);
+      }
+    } catch (e) {
+      console.warn(`Failed to emit ble:${channel}:`, e.message);
     }
   }
 
@@ -139,6 +142,13 @@ class BleManager {
 
   async connect(address) {
     if (!noble) throw new Error('BLE not available');
+    if (!address || typeof address !== 'string') throw new Error('Invalid address');
+
+    // Disconnect existing connection before attempting a new one
+    if (this.connected && this.device) {
+      console.log('Disconnecting existing device before new connection');
+      await this.disconnect('reconnecting');
+    }
 
     // Clear any pending scan timeout — we're connecting now
     if (this._scanTimeout) {

@@ -78,10 +78,14 @@ class PinecilProtocol {
    */
   encodeSetting(value) {
     const num = Number(value);
-    if (!Number.isFinite(num) || num < 0 || num > 65535 || num !== Math.floor(num)) {
-      console.warn('[Protocol] encodeSetting: clamping invalid value', value, 'to safe range');
+    if (!Number.isFinite(num)) {
+      console.warn('[Protocol] encodeSetting: rejecting non-numeric value', value);
+      return null;
     }
-    const clamped = Math.max(0, Math.min(65535, Math.floor(num || 0)));
+    if (num < 0 || num > 65535 || num !== Math.floor(num)) {
+      console.warn('[Protocol] encodeSetting: clamping out-of-range value', value, 'to [0, 65535]');
+    }
+    const clamped = Math.max(0, Math.min(65535, Math.floor(num)));
     const buffer = Buffer.alloc(2);
     buffer.writeUInt16LE(clamped, 0);
     return buffer;

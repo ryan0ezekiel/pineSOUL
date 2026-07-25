@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 10 — v1.1.2  
-**Status:** 114 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
+**Last Updated:** Loop 11 — v1.1.3  
+**Status:** 126 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
 
 ---
 
@@ -184,3 +184,22 @@
 | 138 | MEDIUM | LiveDataPanel.jsx | Null-safe liveData access with optional chaining on all 6 stat values |
 | 139 | LOW | Toast.jsx | Max 5 toasts cap — oldest auto-dismissed when limit exceeded |
 | 140 | LOW | TemperatureGraph.jsx | Math.max spread replaced with reduce — prevents stack overflow at high data volumes |
+
+## v1.1.3 — Loop 11 (2026-07-25)
+
+**12 bugs fixed** — UI corrections, Electron security hardening, BLE lifecycle, protocol fixes.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 141 | MEDIUM | TemperatureDial.jsx | strokeDashoffset clamped to [0,100] — prevents SVG arc wrap on over-temp |
+| 142 | MEDIUM | usePinecil.js | Mock deviceInfo now includes `build` field — fixes "Firmware undefined" in mock mode |
+| 143 | LOW | ConnectionPanel.jsx | Added `exit` prop to DeviceCard for AnimatePresence — smooth item removal |
+| 144 | LOW | SettingsPanel.jsx | Removed dead displayMin/displayMax variables |
+| 145 | HIGH | web-bluetooth.js | PWA scanning state now properly cleared — onScanning events emitted on picker close |
+| 146 | HIGH | main.js | BLE destroy properly awaited before app.quit() — prevents orphaned connections |
+| 147 | MEDIUM | ble-manager.js | _emit() wrapped in try-catch — prevents crash on mid-destruction window |
+| 148 | MEDIUM | ble-manager.js | connect() mutex + address validation — prevents concurrent connect corruption |
+| 149 | MEDIUM | main.js | Input validation on IPC — type checks before BLE operations |
+| 150 | MEDIUM | main.js | Navigation guard blocks non-app origins |
+| 151 | LOW | preload.js | Type checking on updateSetting/setHotkeyConfig arguments |
+| 152 | LOW | main.js | Quit-race fix — tracks destroyPromise to prevent premature exit |

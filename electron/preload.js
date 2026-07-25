@@ -2,6 +2,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Helper: return a cleanup function for each listener
 function onChannel(channel, callback) {
+  if (typeof callback !== 'function') {
+    throw new TypeError('onChannel callback must be a function');
+  }
   const handler = (_, data) => callback(data);
   ipcRenderer.on(channel, handler);
   return () => ipcRenderer.removeListener(channel, handler);
@@ -16,7 +19,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // BLE controls
   bleScan: () => ipcRenderer.invoke('ble:scan'),
-  bleConnect: (address) => ipcRenderer.invoke('ble:connect', address),
+  bleConnect: (address) => {
+    if (typeof address === 'string' && address.trim().length > 0) {
+      return ipcRenderer.invoke('ble:connect', address.trim());
+    }
+    return Promise.resolve({ ok: false, error: 'Invalid address' });
+  },
   bleDisconnect: () => ipcRenderer.invoke('ble:disconnect'),
 
   bleSetSetting: (name, value) => ipcRenderer.invoke('ble:setSetting', name, value),

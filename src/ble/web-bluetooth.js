@@ -55,6 +55,7 @@ export class WebBleAdapter {
   onDeviceFound(cb)      { return this.on('deviceFound', cb); }
   onSettingsLoaded(cb)   { return this.on('settingsLoaded', cb); }
   onError(cb)            { return this.on('error', cb); }
+  onScanning(cb)         { return this.on('scanning', cb); }
 
   // ── Scan (shows browser-native device picker) ─────────────────────
   async bleScan() {
@@ -66,6 +67,7 @@ export class WebBleAdapter {
 
     try {
       this.#scanning = true;
+      this.#emit('scanning', true);
       const device = await navigator.bluetooth.requestDevice({
         filters: [
           { services: [SERVICES.SETTINGS_V221] },
@@ -99,9 +101,11 @@ export class WebBleAdapter {
       // Auto-connect after browser picker
       await this.#doConnect();
       this.#scanning = false;
+      this.#emit('scanning', false);
       return { ok: true };
     } catch (e) {
       this.#scanning = false;
+      this.#emit('scanning', false);
       if (e.name === 'NotFoundError') {
         // User cancelled the picker — not an error
         return { ok: false, error: 'No device selected' };

@@ -7,6 +7,8 @@ function DeviceCard({ device, onConnect, connection }) {
     <motion.button
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.2 }}
       className="w-full glass-subtle p-4 flex items-center justify-between hover:border-soul-500/30 transition-all cursor-pointer group text-left"
       onClick={() => onConnect(device.address)}
       disabled={connection === 'connected'}

@@ -85,8 +85,6 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
     const displayValue = meta.format
       ? meta.format(value ?? 0)
       : isTemp ? Math.round((value ?? 0) / 10) : (value ?? 0);
-    const displayMin = isTemp ? Math.round(limits[0] / 10) : limits[0];
-    const displayMax = isTemp ? Math.round(limits[1] / 10) : limits[1];
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
         <div className="flex items-center gap-2">
