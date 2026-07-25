@@ -77,3 +77,19 @@
 2. **macOS DMG**: Requires `hdiutil` (macOS-only). Zip workaround used instead.
 3. **No code signing**: All builds unsigned
 4. **Three-way constants duplication**: BLE UUIDs defined in 3 files — fragile but currently in sync
+
+---
+
+## v1.0.7 — Loop 5 (2026-07-25)
+
+**7 bugs fixed** — Race conditions, validation, accessibility, dead code.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 81 | MEDIUM | hooks/usePinecil.js | Settings loss race: snapshot+clear pending map atomically before iterating |
+| 82 | MEDIUM | Toast.jsx | Timer reset race: track creation timestamps so dismissing one toast doesn't reset all others |
+| 83 | MEDIUM | electron/ble/protocol.js | encodeSetting: validate+clamp input to uint16 range, prevent NaN/overflow writes |
+| 84 | LOW | electron/ble/ble-manager.js | connect(): clear pending scan timeout when connecting — prevents scan-stop interfering |
+| 85 | LOW | ble/web-bluetooth.js | bleSetSetting/bleSaveToFlash: early-return if not connected |
+| 86 | LOW | TemperatureGraph.jsx | Dead ternary removed — both branches were identical |
+| 87 | MEDIUM | TitleBar.jsx, SettingsPanel.jsx | Added aria-labels on window controls (minimize/maximize/close) and hotkey +/- buttons |

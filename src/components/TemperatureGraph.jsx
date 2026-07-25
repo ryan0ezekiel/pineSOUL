@@ -212,7 +212,7 @@ export default memo(function TemperatureGraph({
             />
             <text
               x={left - 8}
-              y={t.value === '—' ? t.y + 4 : t.y + 4}
+              y={t.y + 4}
               textAnchor="end"
               fill="#94a3b8"
               fontSize="10"

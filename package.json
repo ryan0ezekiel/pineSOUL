@@ -1,6 +1,6 @@
 {
   "name": "pinesoul",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Modern Pinecil V2 controller \u2014 soul of your soldering iron",
   "main": "electron/main.js",
   "author": "niflheimr <niflheimr@users.noreply.github.com>",

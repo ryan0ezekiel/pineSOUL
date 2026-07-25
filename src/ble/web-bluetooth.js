@@ -299,6 +299,7 @@ export class WebBleAdapter {
 
   // ── Write Setting ──────────────────────────────────────────────────
   async bleSetSetting(name, value) {
+    if (!this.#connected) return { ok: false, error: 'Not connected' };
     try {
       const char = this.#settingsChars[name];
       if (!char) {
@@ -331,6 +332,7 @@ export class WebBleAdapter {
 
   // ── Save to Flash ──────────────────────────────────────────────────
   async bleSaveToFlash() {
+    if (!this.#connected) return { ok: false, error: 'Not connected' };
     try {
       if (this.#saveChar) {
         await this.#saveChar.writeValue(new Uint8Array([1]));

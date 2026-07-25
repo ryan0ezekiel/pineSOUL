@@ -285,11 +285,14 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     setDirtySettings(prev => new Set([...prev, name]));
   }, []);
 
-  // Apply all pending settings
+  // Apply all pending settings — snapshot + clear atomically to avoid losing concurrent edits
   const applySettings = useCallback(async () => {
     if (!api) return [];
+    // Snapshot current pending and clear immediately so new edits accumulate separately
+    const batch = { ...pendingSettings.current };
+    pendingSettings.current = {};
     const results = [];
-    for (const [name, value] of Object.entries(pendingSettings.current)) {
+    for (const [name, value] of Object.entries(batch)) {
       try {
         const result = await api.bleSetSetting(name, value);
         results.push({ name, ...result });
@@ -297,9 +300,13 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
         results.push({ name, ok: false, error: e.message });
       }
     }
-    pendingSettings.current = {};
-    setSettingsChanged(false);
-    setDirtySettings(new Set());
+    // Only clear changed state if no new edits arrived during the await loop
+    if (Object.keys(pendingSettings.current).length === 0) {
+      setSettingsChanged(false);
+      setDirtySettings(new Set());
+    } else {
+      setSettingsChanged(true);
+    }
     return results;
   }, []);
 

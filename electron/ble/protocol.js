@@ -77,8 +77,13 @@ class PinecilProtocol {
    * Encode a setting value to a 2-byte buffer
    */
   encodeSetting(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0 || num > 65535 || num !== Math.floor(num)) {
+      console.warn('[Protocol] encodeSetting: clamping invalid value', value, 'to safe range');
+    }
+    const clamped = Math.max(0, Math.min(65535, Math.floor(num || 0)));
     const buffer = Buffer.alloc(2);
-    buffer.writeUInt16LE(value, 0);
+    buffer.writeUInt16LE(clamped, 0);
     return buffer;
   }
 

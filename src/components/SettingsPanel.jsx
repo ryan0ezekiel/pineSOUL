@@ -261,6 +261,7 @@ function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyCon
                       <button
                         onClick={() => onUpdateHotkeyConfig({ tempStep: Math.max(10, (hotkeyConfig?.tempStep || 10) - 50) })}
                         className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400"
+                        aria-label="Decrease temperature step"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
@@ -268,6 +269,7 @@ function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyCon
                       <button
                         onClick={() => onUpdateHotkeyConfig({ tempStep: Math.min(1000, (hotkeyConfig?.tempStep || 10) + 50) })}
                         className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400"
+                        aria-label="Increase temperature step"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
@@ -282,6 +284,7 @@ function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyCon
                       <button
                         onClick={() => onUpdateHotkeyConfig({ toggleTemp: Math.max(500, (hotkeyConfig?.toggleTemp || 3200) - 100) })}
                         className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400"
+                        aria-label="Decrease toggle temperature"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
@@ -289,6 +292,7 @@ function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyCon
                       <button
                         onClick={() => onUpdateHotkeyConfig({ toggleTemp: Math.min(4500, (hotkeyConfig?.toggleTemp || 3200) + 100) })}
                         className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400"
+                        aria-label="Increase toggle temperature"
                       >
                         <Plus className="w-3 h-3" />
                       </button>

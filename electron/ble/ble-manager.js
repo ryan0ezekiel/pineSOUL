@@ -105,6 +105,12 @@ class BleManager {
   async connect(address) {
     if (!noble) throw new Error('BLE not available');
 
+    // Clear any pending scan timeout — we're connecting now
+    if (this._scanTimeout) {
+      clearTimeout(this._scanTimeout);
+      this._scanTimeout = null;
+    }
+
     this._emit('connectionChange', { status: 'connecting', address });
 
     try {

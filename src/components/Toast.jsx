@@ -32,18 +32,38 @@ const variants = {
   exit: { opacity: 0, x: 80, scale: 0.95, transition: { duration: 0.2 } },
 };
 
+const DISMISS_MS = 3000;
+
 export default function Toast({ toasts = [], onDismiss }) {
   // Keep a ref to onDismiss so the timeout callback always sees the latest version
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
 
+  // Track creation timestamps so dismissed toasts don't reset remaining toasts' timers
+  const createdRef = useRef(new Map());
+
   useEffect(() => {
     if (!toasts.length || !onDismissRef.current) return;
-    const timers = toasts.map((t) =>
-      setTimeout(() => {
+
+    // Prune timestamps for toasts that no longer exist
+    for (const id of createdRef.current.keys()) {
+      if (!toasts.some((t) => t.id === id)) {
+        createdRef.current.delete(id);
+      }
+    }
+
+    const timers = toasts.map((t) => {
+      // Record creation time for new toasts
+      if (!createdRef.current.has(t.id)) {
+        createdRef.current.set(t.id, Date.now());
+      }
+      const elapsed = Date.now() - createdRef.current.get(t.id);
+      const remaining = Math.max(0, DISMISS_MS - elapsed);
+      return setTimeout(() => {
+        createdRef.current.delete(t.id);
         onDismissRef.current?.(t.id);
-      }, 3000)
-    );
+      }, remaining);
+    });
     return () => timers.forEach(clearTimeout);
   }, [toasts]);
 

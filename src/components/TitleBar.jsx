@@ -83,13 +83,13 @@ export default function TitleBar({ connection, deviceInfo }) {
       <div className="flex items-center gap-0.5">
         {isElectron ? (
           <>
-            <button className="titlebar-btn" onClick={handleMinimize}>
+            <button className="titlebar-btn" onClick={handleMinimize} aria-label="Minimize">
               <Minus className="w-3.5 h-3.5" />
             </button>
-            <button className="titlebar-btn" onClick={handleMaximize}>
+            <button className="titlebar-btn" onClick={handleMaximize} aria-label="Maximize">
               <Square className="w-3 h-3" />
             </button>
-            <button className="titlebar-btn hover:bg-red-500/80 hover:text-white" onClick={handleClose}>
+            <button className="titlebar-btn hover:bg-red-500/80 hover:text-white" onClick={handleClose} aria-label="Close">
               <X className="w-3.5 h-3.5" />
             </button>
           </>
