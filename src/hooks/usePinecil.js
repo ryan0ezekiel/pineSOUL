@@ -491,6 +491,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const setTempPercent = liveData.MaxTipTempAbility > 0
     ? (liveData.SetTemp / liveData.MaxTipTempAbility) * 100
     : 0;
+  const displayUnit = settings.TemperatureUnit === 1 ? '°F' : '°C';
 
   return {
     // State
