@@ -253,6 +253,10 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     setConnectionError(null);
     setTempHistory([]);
     historyRef.current = [];
+    setDirtySettings(new Set());
+    setSettings({});
+    setSettingsChanged(false);
+    pendingSettings.current = {};
   }, []);
 
   // Reconnect

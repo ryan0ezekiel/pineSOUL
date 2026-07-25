@@ -75,10 +75,6 @@ class BleManager {
       noble.removeListener('discover', this._boundHandlers.discover);
       this._boundHandlers = null;
     }
-    if (this._pollingInterval) {
-      clearInterval(this._pollingInterval);
-      this._pollingInterval = null;
-    }
     if (this._scanTimeout) {
       clearTimeout(this._scanTimeout);
       this._scanTimeout = null;
@@ -148,60 +144,66 @@ class BleManager {
       await peripheral.connectAsync();
       this.device = peripheral;
 
-      // Discover services
-      const { characteristics } = await peripheral.discoverSomeServicesAndCharacteristicsAsync([], []);
+      try {
+        // Discover services
+        const { characteristics } = await peripheral.discoverSomeServicesAndCharacteristicsAsync([], []);
 
-      // Detect firmware version
-      const serviceUUIDs = peripheral.services?.map(s => s.uuid) || [];
-      const version = this.protocol.detectVersion(serviceUUIDs);
+        // Detect firmware version
+        const serviceUUIDs = peripheral.services?.map(s => s.uuid) || [];
+        const version = this.protocol.detectVersion(serviceUUIDs);
 
-      if (!version) {
-        const err = new Error('Unrecognized Pinecil firmware — could not detect BLE services');
-        this._emit('error', { type: 'firmware', message: err.message, address });
-        throw err;
-      }
-
-      // Find settings characteristics
-      this.settingsCharacteristics = [];
-      this.bulkDataCharacteristic = null;
-
-      for (const char of (characteristics || [])) {
-        const uuid = char.uuid;
-
-        // Check if it's a settings characteristic
-        if (this.protocol.getSettingName(uuid) !== uuid) {
-          this.settingsCharacteristics.push(char);
+        if (!version) {
+          const err = new Error('Unrecognized Pinecil firmware — could not detect BLE services');
+          this._emit('error', { type: 'firmware', message: err.message, address });
+          throw err;
         }
 
-        // Check if it's the BulkData characteristic
-        const bulkDataUUID = this.protocol.getBulkDataCharUUID();
-        if (bulkDataUUID && uuid === bulkDataUUID) {
-          this.bulkDataCharacteristic = char;
+        // Find settings characteristics
+        this.settingsCharacteristics = [];
+        this.bulkDataCharacteristic = null;
+
+        for (const char of (characteristics || [])) {
+          const uuid = char.uuid;
+
+          // Check if it's a settings characteristic
+          if (this.protocol.getSettingName(uuid) !== uuid) {
+            this.settingsCharacteristics.push(char);
+          }
+
+          // Check if it's the BulkData characteristic
+          const bulkDataUUID = this.protocol.getBulkDataCharUUID();
+          if (bulkDataUUID && uuid === bulkDataUUID) {
+            this.bulkDataCharacteristic = char;
+          }
         }
+
+        // Get device info
+        this.deviceInfo = {
+          name: peripheral.advertisement?.localName || `Pinecil-${address}`,
+          address: address,
+          build: version,
+          rssi: peripheral.rssi,
+        };
+
+        this.connected = true;
+        this._emit('connectionChange', {
+          status: 'connected',
+          address,
+          deviceInfo: this.deviceInfo,
+        });
+
+        // Start live data polling
+        this._startLiveData();
+
+        // Load settings
+        await this._loadSettings();
+
+        return this.deviceInfo;
+      } catch (discoverErr) {
+        // Disconnect peripheral so it doesn't stay connected on failure
+        try { await peripheral.disconnectAsync(); } catch (_) { /* best-effort */ }
+        throw discoverErr;
       }
-
-      // Get device info
-      this.deviceInfo = {
-        name: peripheral.advertisement?.localName || `Pinecil-${address}`,
-        address: address,
-        build: version,
-        rssi: peripheral.rssi,
-      };
-
-      this.connected = true;
-      this._emit('connectionChange', {
-        status: 'connected',
-        address,
-        deviceInfo: this.deviceInfo,
-      });
-
-      // Start live data polling
-      this._startLiveData();
-
-      // Load settings
-      await this._loadSettings();
-
-      return this.deviceInfo;
     } catch (e) {
       // Emit 'error' for connection failures (avoid double-emit for cases
       // already handled above like device-not-found and firmware detection)

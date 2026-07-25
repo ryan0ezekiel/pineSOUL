@@ -164,7 +164,6 @@ export class WebBleAdapter {
         throw new Error('Unsupported Pinecil firmware. Please update to v2.20+.');
       }
 
-      this.#connected = true;
       this.#settingsMap = getSettingsMap(this.#version);
       this.#bulkMap = getBulkMap(this.#version);
 
@@ -180,10 +179,16 @@ export class WebBleAdapter {
       });
 
       // Set up live data notifications + load settings
-      await Promise.all([
-        this.#setupBulkData(),
-        this.#loadSettings(),
-      ]);
+      try {
+        await Promise.all([
+          this.#setupBulkData(),
+          this.#loadSettings(),
+        ]);
+        this.#connected = true;
+      } catch (setupErr) {
+        this.#connected = false;
+        throw setupErr;
+      }
 
     } catch (e) {
       this.#connected = false;
@@ -205,6 +210,11 @@ export class WebBleAdapter {
   #handleDisconnect(reason = 'unknown') {
     this.#connected = false;
     this.#server = null;
+    // Remove bulk data notification listener before releasing the characteristic
+    if (this.#bulkDataChar && this.#bulkDataChar._pwaHandler) {
+      this.#bulkDataChar.removeEventListener('characteristicvaluechanged', this.#bulkDataChar._pwaHandler);
+      this.#bulkDataChar._pwaHandler = null;
+    }
     this.#bulkDataChar = null;
     this.#settingsChars = {};
     this.#saveChar = null;
@@ -271,7 +281,7 @@ export class WebBleAdapter {
             const char = await settingsService.getCharacteristic(uuid);
             const value = await char.readValue();
             const raw = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-            return { name, value: parseSetting(raw, this.#version), char };
+            return { name, value: parseSetting(raw), char };
           } catch (e) {
             return { name, value: null, char: null };
           }
@@ -325,7 +335,7 @@ export class WebBleAdapter {
       }
 
       const encoded = encodeSetting(value);
-      await this.#settingsChars[name].writeValue(encoded);
+      await withTimeout(this.#settingsChars[name].writeValue(encoded), 10000, `Write setting ${name}`);
       return { ok: true };
 
     } catch (e) {
@@ -340,7 +350,7 @@ export class WebBleAdapter {
     if (!this.#connected) return { ok: false, error: 'Not connected' };
     try {
       if (this.#saveChar) {
-        await this.#saveChar.writeValue(new Uint8Array([1]));
+        await withTimeout(this.#saveChar.writeValue(new Uint8Array([1])), 10000, 'Save to flash');
         return { ok: true };
       }
 
@@ -354,7 +364,7 @@ export class WebBleAdapter {
       const saveUUID = Object.keys(this.#settingsMap).find(k => this.#settingsMap[k] === 'save_to_flash');
       if (saveUUID) {
         this.#saveChar = await settingsService.getCharacteristic(saveUUID);
-        await this.#saveChar.writeValue(new Uint8Array([1]));
+        await withTimeout(this.#saveChar.writeValue(new Uint8Array([1])), 10000, 'Save to flash');
         return { ok: true };
       }
 

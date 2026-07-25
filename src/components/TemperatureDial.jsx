@@ -1,5 +1,4 @@
-import React, { useMemo, useId, memo } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useId, memo } from 'react';
 
 const RING_SIZE = 280;
 const STROKE_WIDTH = 8;

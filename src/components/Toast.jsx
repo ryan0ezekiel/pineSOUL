@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertCircle, CheckCircle, Info } from 'lucide-react';
 
@@ -96,7 +96,7 @@ export default function Toast({ toasts = [], onDismiss }) {
               </div>
 
               {/* Message */}
-              <p className={`flex-1 text-sm leading-snug ${config.text}`} role="alert">
+              <p className={`flex-1 text-sm leading-snug ${config.text}`} role={toast.type === 'error' ? 'alert' : 'status'}>
                 {toast.message}
               </p>
 

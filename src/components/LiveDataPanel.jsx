@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Zap, Clock, Thermometer, Gauge, Signal, Plug
@@ -24,7 +24,7 @@ function StatCard({ icon: Icon, label, value, unit, color = 'text-iron-300', del
   );
 }
 
-export default function LiveDataPanel({
+export default memo(function LiveDataPanel({
   liveData,
   formatTemp,
   displayUnit,
@@ -84,4 +84,4 @@ export default function LiveDataPanel({
       />
     </div>
   );
-}
+});

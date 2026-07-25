@@ -42,7 +42,7 @@ export function parseLiveData(buffer) {
 }
 
 // ─── Setting Parser (2 bytes = uint16 LE) ───────────────────────────
-export function parseSetting(buffer, version) {
+export function parseSetting(buffer) {
   // Accept both ArrayBuffer and Uint8Array (fixes offset bug with Web Bluetooth)
   const raw = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   if (!raw || raw.byteLength < 2) return null;
@@ -52,9 +52,14 @@ export function parseSetting(buffer, version) {
 
 // ─── Setting Encoder ─────────────────────────────────────────────────
 export function encodeSetting(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0 || num > 65535 || num !== Math.floor(num)) {
+    console.warn('[Protocol] encodeSetting: clamping invalid value', value, 'to safe range');
+  }
+  const clamped = Math.max(0, Math.min(65535, Math.floor(num || 0)));
   const buf = new Uint8Array(2);
   const view = new DataView(buf.buffer);
-  view.setUint16(0, value, true);
+  view.setUint16(0, clamped, true);
   return buf;
 }
 

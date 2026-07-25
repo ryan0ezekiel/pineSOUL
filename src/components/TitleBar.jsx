@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Minus, Square, X, Download, Flame } from 'lucide-react';
 
 const isElectron = !!(window.electronAPI?.minimize);
@@ -40,7 +40,7 @@ function InstallButton() {
   );
 }
 
-export default function TitleBar({ connection, deviceInfo }) {
+export default memo(function TitleBar({ connection, deviceInfo }) {
   const handleMinimize = () => window.electronAPI?.minimize?.();
   const handleMaximize = () => window.electronAPI?.maximize?.();
   const handleClose = () => window.electronAPI?.close?.();
@@ -99,4 +99,4 @@ export default function TitleBar({ connection, deviceInfo }) {
       </div>
     </div>
   );
-}
+});

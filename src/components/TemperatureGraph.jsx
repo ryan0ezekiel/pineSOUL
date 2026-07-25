@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect, useId, memo } from 'react';
+import { useMemo, useRef, useState, useEffect, useId, memo } from 'react';
 import { motion } from 'framer-motion';
 
 // ── Cubic bezier interpolation ──────────────────────────────────────────
@@ -47,6 +47,8 @@ function generateTicks(maxVal) {
 }
 
 // ── Component ────────────────────────────────────────────────────────────
+const NOMINAL_WIDTH = 600;
+
 export default memo(function TemperatureGraph({
   history = [],
   windowSeconds = 300, // 5 minutes
@@ -88,7 +90,7 @@ export default memo(function TemperatureGraph({
     const pBottom = padding.bottom;
     const pLeft = padding.left;
 
-    const nomWidth = 600;
+    const nomWidth = NOMINAL_WIDTH;
     const nomHeight = height;
     const plotW = nomWidth - pLeft - pRight;
     const plotH = nomHeight - pTop - pBottom;
@@ -166,8 +168,6 @@ export default memo(function TemperatureGraph({
     };
   }, [history, windowSeconds, height, formatTemp]);
 
-  const nomWidth = 600;
-
   return (
     <motion.div
       ref={containerRef}
@@ -177,7 +177,7 @@ export default memo(function TemperatureGraph({
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       <svg
-        viewBox={`0 0 ${nomWidth} ${height}`}
+        viewBox={`0 0 ${NOMINAL_WIDTH} ${height}`}
         className="w-full h-full"
         preserveAspectRatio="xMidYMid meet"
       >
@@ -287,7 +287,7 @@ export default memo(function TemperatureGraph({
         {/* ── Empty state ──────────────────────────────────────── */}
         {pathData === '' && areaData === '' && targetPathData === '' && (
           <text
-            x={nomWidth / 2}
+            x={NOMINAL_WIDTH / 2}
             y={height / 2}
             textAnchor="middle"
             fill="#64748b"

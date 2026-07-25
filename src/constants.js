@@ -126,7 +126,7 @@ export const SETTING_META = {
   SetTemperature:      { label: 'Soldering Temp',     unit: '°',    group: 'soldering' },
   BoostTemperature:    { label: 'Boost Temp',         unit: '°',    group: 'soldering' },
   SleepTemperature:    { label: 'Sleep Temp',         unit: '°',    group: 'sleep' },
-  SleepTimeout:        { label: 'Sleep Timeout',      unit: 's',    group: 'sleep',     format: v => { if (v === 0) return 'Off'; if (v <= 5) { const sec = v * 15; const m = Math.floor(sec / 60); const s = sec % 60; if (m > 0 && s > 0) return `${m}m ${s}s`; if (m > 0) return `${m}m`; return `${sec}s`; } return `${v - 5}m`; } },
+  SleepTimeout:        { label: 'Sleep Timeout',      unit: 's',    group: 'sleep',     format: v => v === 0 ? 'Off' : v < 6 ? `${v * 15}s` : `${v - 5}m` },
   ShutdownTimeout:     { label: 'Shutdown Timer',     unit: 'min',  group: 'sleep',     format: v => v === 0 ? 'Off' : `${v} min` },
   AutoStart:           { label: 'Start-up',           unit: '',     group: 'soldering', format: v => ['Off', 'Heat', 'Sleep', 'Standby'][v] || 'Off' },
   MotionSensitivity:   { label: 'Motion Sensitivity', unit: '',     group: 'device',    format: v => v === 0 ? 'Off' : v },

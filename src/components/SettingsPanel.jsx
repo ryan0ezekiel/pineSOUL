@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Moon, Power, Monitor, Settings2, Cpu,
@@ -131,7 +131,7 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
 });
 
 // ─── Hotkey configuration rows ──────────────────────────────────
-function HotkeyRow({ label, description, value, onChange }) {
+const HotkeyRow = memo(function HotkeyRow({ label, description, value, onChange }) {
   const [editing, setEditing] = useState(false);
 
   const handleKeyDown = (e) => {
@@ -175,9 +175,9 @@ function HotkeyRow({ label, description, value, onChange }) {
       </button>
     </div>
   );
-}
+});
 
-function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
+const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
   const [expanded, setExpanded] = useState(false);
   const group = GROUPS[groupKey];
   if (!group) return null;
@@ -358,7 +358,7 @@ function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyCon
       </AnimatePresence>
     </div>
   );
-}
+});
 
 export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChanges, dirtySettings, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
   const [saving, setSaving] = useState(false);

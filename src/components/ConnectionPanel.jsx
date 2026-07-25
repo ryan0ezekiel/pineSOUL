@@ -2,13 +2,14 @@ import { memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bluetooth, Search, Link2, Unlink, RefreshCw, Plug, Signal, Loader2 } from 'lucide-react';
 
-function DeviceCard({ device, onConnect }) {
+function DeviceCard({ device, onConnect, connection }) {
   return (
     <motion.button
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className="w-full glass-subtle p-4 flex items-center justify-between hover:border-soul-500/30 transition-all cursor-pointer group text-left"
       onClick={() => onConnect(device.address)}
+      disabled={connection === 'connected'}
       aria-label={`Connect to ${device.name || 'Pinecil'} ${device.address || ''}`}
     >
       <div className="flex items-center gap-3">
@@ -37,7 +38,7 @@ function DeviceCard({ device, onConnect }) {
   );
 }
 
-export default function ConnectionPanel({ connection, devices, scanning, deviceInfo, onScan, onConnect, onDisconnect, connectionError }) {
+export default memo(function ConnectionPanel({ connection, devices, scanning, deviceInfo, onScan, onConnect, onDisconnect, connectionError }) {
   const noop = useRef(() => {}).current;
   return (
     <div className="flex flex-col h-full">
@@ -98,6 +99,7 @@ export default function ConnectionPanel({ connection, devices, scanning, deviceI
                 key={device.address || device.id}
                 device={device}
                 onConnect={connection === 'connected' ? noop : onConnect}
+                connection={connection}
               />
             ))
           ) : !scanning ? (
@@ -123,4 +125,4 @@ export default function ConnectionPanel({ connection, devices, scanning, deviceI
       </div>
     </div>
   );
-}
+});

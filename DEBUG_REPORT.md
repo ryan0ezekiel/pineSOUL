@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 7 — v1.0.9  
-**Status:** 81 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7), 0 critical remaining
+**Last Updated:** Loop 8 — v1.1.0  
+**Status:** 97 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
 
 ---
 
@@ -125,3 +125,31 @@
 | 102 | LOW | electron/preload.js | Removed dead bleReconnect IPC exposure — renderer never uses it |
 | 104 | LOW | electron/preload.js | Removed dead ALLOWED entries (ble:stateChange, ble:toast), added ble:scanning |
 | 105 | COSMETIC | electron/ble/ble-manager.js | Removed duplicate _disconnecting = false initialization |
+
+---
+
+## v1.1.0 — Loop 8 (2026-07-25)
+
+**16 bugs fixed** — BLE resource leaks, protocol correctness, React performance, accessibility.
+
+### BLE Layer (6 fixes)
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 112 | CRITICAL | electron/ble/ble-manager.js | destroy() cleared wrong variable — `_pollingInterval` stored duration (500), not interval handle. Removed bogus block; `_stopLiveData()` already handles it |
+| 113 | CRITICAL | electron/ble/ble-manager.js | Peripheral left connected on service discovery failure — wrapped post-connect in try/catch with disconnect cleanup |
+| 118 | HIGH | src/ble/protocol.js | encodeSetting() had no input validation — NaN/strings silently became 0. Added Number.isFinite check, range clamping [0,65535], integer rejection |
+| 119 | HIGH | src/ble/web-bluetooth.js | Three bare writeValue() calls lacked withTimeout() — could hang forever on unresponsive device. Wrapped all with 10s timeout |
+| 120 | HIGH | src/ble/web-bluetooth.js | `#connected = true` set before Promise.all setup — settings writes during setup window hit partially-initialized adapter. Moved flag after setup |
+| 121 | MEDIUM | src/ble/web-bluetooth.js | Notification listener leaked on disconnect — #handleDisconnect nulled #bulkDataChar without removing event listener. Added cleanup |
+
+### React Components (8 fixes)
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 114 | LOW | TemperatureDial.jsx | Removed unused `motion` import (~40KB gzipped dead weight from framer-motion) |
+| 115 | MEDIUM | ConnectionPanel.jsx | DeviceCard now receives `connection` prop + `disabled` attribute on connect button when already connected |
+| 116-118 | MEDIUM | TitleBar, ConnectionPanel, LiveDataPanel | Wrapped with React.memo to prevent unnecessary parent re-renders |
+| 119-120 | MEDIUM | SettingsPanel.jsx | SettingsGroup and HotkeyRow wrapped with React.memo |
+| 121 | LOW | Toast.jsx | Conditional ARIA role: `role="alert"` for errors, `role="status"` for info/success |
+| 122 | LOW | hooks/usePinecil.js | disconnect() now clears dirtySettings, settings, settingsChanged, pendingSettings |
+| 123 | LOW | TemperatureGraph.jsx | Extracted nomWidth=600 to module-level constant, removed duplicate definitions |
+| — | LOW | 7 component files | Removed stale `React` from named imports (Vite automatic JSX runtime handles it) |
