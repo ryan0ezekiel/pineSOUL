@@ -157,6 +157,7 @@ export const SETTING_META = {
   ReverseButtonTempChange: { label: 'Swap +/-',       unit: '',     group: 'advanced',  format: v => v === 0 ? 'Normal' : 'Reversed' },
   HallEffectSensitivity: { label: 'Hall Sensitivity',  unit: '',    group: 'advanced',  format: v => v === 0 ? 'Off' : v },
   BLEEnabled:          { label: 'BLE Enabled',        unit: '',     group: 'advanced',  format: v => v === 0 ? 'Off' : 'On' },
+  PDVpdoEnabled:       { label: 'PD VPDO',            unit: '',     group: 'advanced',  format: v => v === 0 ? 'Off' : 'On' },
   VoltageCalibration:  { label: 'VIN Calibration',    unit: '',     group: 'calibration' },
   CalibrationOffset:   { label: 'CJC Offset',         unit: '',     group: 'calibration' },
   CalibrateCJC:        { label: 'Calibrate CJC',      unit: '',     group: 'calibration', format: v => 'Trigger' },

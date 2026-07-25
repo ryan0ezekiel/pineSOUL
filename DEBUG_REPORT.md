@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 18 — v1.2.1  
-**Status:** 182 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18), 0 critical remaining
+**Last Updated:** Loop 19 — v1.2.2  
+**Status:** 185 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19), 0 critical remaining
 
 ---
 
@@ -282,3 +282,13 @@
 | 180 | MEDIUM | electron/main.js | ble:setSetting IPC handler now validates value is finite number before forwarding to BLE |
 | 181 | LOW | index.html | Added Content-Security-Policy meta tag — restricts script/style/connect sources |
 | 182 | LOW | electron/preload.js | bleSetSetting now validates name (string) and value (finite number) before IPC invoke |
+
+## v1.2.2 — Loop 19 (2026-07-25)
+
+**3 bugs fixed** — Protocol completeness, documentation clarity.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 183 | LOW | src/constants.js | Added PDVpdoEnabled to SETTING_META — was missing from UI despite being in VALUE_LIMITS |
+| 184 | LOW | src/ble/constants.js | Added clarifying comment on SETTINGS_V220 copy — explains why it's identical to V221 |
+| 185 | LOW | electron/ble/constants.js | Comment already present (verified); PWA constants aligned |

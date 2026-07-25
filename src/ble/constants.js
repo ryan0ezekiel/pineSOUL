@@ -54,7 +54,7 @@ export const SETTINGS_V221 = {
   'f6d7fffe-5a10-4eba-aa55-33e27f9bc533': 'SettingsReset',
 };
 
-export const SETTINGS_V220 = { ...SETTINGS_V221 };
+export const SETTINGS_V220 = { ...SETTINGS_V221 }; // Same char UUIDs — only the service UUID differs
 
 // ─── Bulk Data Names ────────────────────────────────────────────────
 export const BULK_DATA_V221 = {
