@@ -74,6 +74,7 @@ Live at: **https://ryan0ezekiel.github.io/pineSOUL/**
 | BLE (Desktop) | @abandonware/noble |
 | BLE (PWA) | Web Bluetooth API |
 | Packaging | electron-builder |
+| Security | CSP, IPC validation, context isolation |
 
 ## Architecture
 
