@@ -1,13 +1,18 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 36 — v1.3.6  
-**Status:** 211 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22 + 3 Loop 27 + 2 Loop 35 + 1 Loop 36), 0 critical remaining
+**Last Updated:** Loop 37 — v1.3.7  
+**Status:** 213 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22 + 3 Loop 27 + 2 Loop 35 + 1 Loop 36 + 2 Loop 37), 0 critical remaining
 
 ---
 
-## Cycle 36 Fixes (v1.3.6) — Behavioral Edge Case Cycles I–P (protocol, race conditions, component edge cases)
+## Cycle 37 Fixes (v1.3.7) — Deep Sweep Q–V (hook formatters, components, build config, state flow)
 
 | # | Severity | Bug | File | Fix |
+|-----|----------|-----|------|-----|
+| 214 | Low | `formatVoltage` displays "NaN" for undefined/null BLE data | `src/hooks/usePinecil.js` | Added `raw == null` guard before `raw === 0` check |
+| 215 | Low | `formatHandleTemp` displays "NaN" for undefined/null BLE data | `src/hooks/usePinecil.js` | Added `raw == null` guard returning '--' |
+
+**Cycles Q–V scope (6 areas, 8 files):** usePinecil.js state machine/formatters, SettingsPanel.jsx sliders/dirty tracking, ConnectionPanel.jsx scan/connect, LiveDataPanel.jsx stats, TitleBar.jsx install/window controls, ErrorBoundary.jsx, TemperatureDial.jsx SVG rendering, electron main.js/preload.js IPC, vite configs, tailwind config, constants parity, cross-component state flow (BLE→hook→components→user→BLE). All verified clean except the 2 null-guard fixes above.
 |---|----------|-----|------|-----|
 | 213 | MEDIUM | BLE reconnect race condition — disconnect is async; if a second connect() arrives while disconnect awaits `disconnectAsync()`, the guard returns immediately, new connection is established, but old disconnect then overwrites `this.device = null` and `this.connected = false` | `electron/ble/ble-manager.js:244-273` | Capture device reference before async disconnect; only clear state if device hasn't changed |
 

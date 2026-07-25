@@ -402,7 +402,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
 
   // ─── Format helpers (memoized) ──────────────────────────
   const formatVoltage = useCallback((raw) => {
-    if (raw === 0) return '--';
+    if (raw == null || raw === 0) return '--';
     return (raw / 100).toFixed(1);
   }, []);
 
@@ -417,6 +417,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   }, []);
 
   const formatHandleTemp = useCallback((raw) => {
+    if (raw == null) return '--';
     const tempC = (raw / 10);
     if (settings.TemperatureUnit === 1) {
       return Math.round(tempC * 9/5 + 32);
