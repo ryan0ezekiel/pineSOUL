@@ -185,8 +185,8 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
   const isHotkeyGroup = groupKey === 'hotkeys';
   const isAppGroup = groupKey === 'app';
 
-  if (isSpecialGroup) return [];
-    return Object.entries(SETTING_META)
+  const groupSettings = isSpecialGroup ? [] :
+    Object.entries(SETTING_META)
         .filter(([_, m]) => m.group === groupKey && !HIDDEN_SETTINGS.has(_))
         .map(([name, meta]) => ({ name, meta }));
 
