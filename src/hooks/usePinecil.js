@@ -202,7 +202,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       return;
     }
     const syncInterval = setInterval(() => {
-      setTempHistory([...historyRef.current]);
+      setTempHistory(historyRef.current);
     }, 800);
     return () => clearInterval(syncInterval);
   }, [connection]);
@@ -251,6 +251,8 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     setDeviceInfo(null);
     setLiveData(DEFAULT_LIVE_DATA);
     setConnectionError(null);
+    setTempHistory([]);
+    historyRef.current = [];
   }, []);
 
   // Reconnect
@@ -300,13 +302,18 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
         results.push({ name, ok: false, error: e.message });
       }
     }
-    // Only clear changed state if no new edits arrived during the await loop
-    if (Object.keys(pendingSettings.current).length === 0) {
-      setSettingsChanged(false);
-      setDirtySettings(new Set());
-    } else {
-      setSettingsChanged(true);
-    }
+    // Narrow dirtySettings: remove only names that were in this batch and succeeded
+    const batchNames = Object.keys(batch);
+    const failedNames = new Set(results.filter(r => !r.ok).map(r => r.name));
+    setDirtySettings(prev => {
+      const next = new Set(prev);
+      for (const name of batchNames) {
+        if (!failedNames.has(name)) next.delete(name);
+      }
+      return next;
+    });
+    // Only clear settingsChanged if no new edits arrived during the await loop
+    setSettingsChanged(Object.keys(pendingSettings.current).length > 0);
     return results;
   }, []);
 
@@ -383,41 +390,37 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     const current = ld.SetTemp || 3200;
     const stepVal = step || 10;
     const newTemp = Math.min(current + stepVal, ld.MaxTipTempAbility || 4500);
-    updateSetting('SetTemperature', newTemp);
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
     if (!mock && api) {
       api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
     }
-  }, [updateSetting, mock]);
+  }, [mock]);
 
   const handleTempDown = useCallback((step) => {
     const ld = liveDataRef.current;
     const current = ld.SetTemp || 3200;
     const stepVal = step || 10;
     const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
-    updateSetting('SetTemperature', newTemp);
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
     if (!mock && api) {
       api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
     }
-  }, [updateSetting, mock]);
+  }, [mock]);
 
   const handleToggleMode = useCallback((targetTemp) => {
     const ld = liveDataRef.current;
     // 0.1°C: default target 3200=320°C, cooldown threshold 500=50°C, cooldown target 250=25°C
     const toggleTarget = targetTemp || 3200;
     if (ld.OperatingMode === 1 && ld.LiveTemp > 500) {
-      updateSetting('SetTemperature', 250);
       setLiveData(prev => ({ ...prev, SetTemp: 250 }));
       if (!mock && api) api.bleSetSetting('SetTemperature', 250).catch(() => {});
       addToast('❄️ Cooling down...', 'info');
     } else {
-      updateSetting('SetTemperature', toggleTarget);
       setLiveData(prev => ({ ...prev, SetTemp: toggleTarget }));
       if (!mock && api) api.bleSetSetting('SetTemperature', toggleTarget).catch(() => {});
       addToast('🔥 Heating to ' + formatTemp(toggleTarget) + '°', 'success');
     }
-  }, [updateSetting, mock, addToast, formatTemp]);
+  }, [mock, addToast, formatTemp]);
 
   const tempUnitLabel = settings.TemperatureUnit === 1 ? '°F' : '°C';
   const displayUnit = tempUnitLabel;

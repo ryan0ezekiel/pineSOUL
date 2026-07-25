@@ -39,7 +39,7 @@ function createWindow() {
   }
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
-  mainWindow.on('closed', () => { mainWindow = null; ble.setWindow(null); });
+  mainWindow.on('closed', () => { mainWindow = null; ble.setWindow(null); ble.destroy(); });
 }
 
 // ─── Window Controls ────────────────────────────────────────────────

@@ -27,7 +27,6 @@ class BleManager {
     this._lastSettings = null;
     this._pollingInterval = options.pollingInterval || 500;
     this._disconnecting = false; // guard against re-entrant disconnect
-    this._disconnecting = false; // guard against re-entrant disconnect
     this._boundHandlers = null; // stored for cleanup on destroy
     // Bind noble events
     if (noble) {
@@ -80,6 +79,11 @@ class BleManager {
       clearInterval(this._pollingInterval);
       this._pollingInterval = null;
     }
+    if (this._scanTimeout) {
+      clearTimeout(this._scanTimeout);
+      this._scanTimeout = null;
+    }
+    this._stopLiveData();
   }
 
   setWindow(win) {

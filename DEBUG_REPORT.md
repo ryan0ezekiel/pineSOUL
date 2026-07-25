@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Cycle 4 — v1.0.6  
-**Status:** 61 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4), 0 critical remaining
+**Last Updated:** Loop 7 — v1.0.9  
+**Status:** 81 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7), 0 critical remaining
 
 ---
 
@@ -107,3 +107,21 @@
 | 91 | LOW | ConnectionPanel.jsx | Stable noop ref instead of inline arrow on every render |
 | 92 | — | (skipped) | startScan/connect already have try/catch — false alarm |
 | 93 | MEDIUM | ble/web-bluetooth.js | Added #scanning guard to prevent double-scan race |
+
+---
+
+## v1.0.9 — Loop 7 (2026-07-25)
+
+**9 bugs fixed** — Dirty settings dual-write, destroy cleanup, dead code removal, memory leak.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 94 | MEDIUM | hooks/usePinecil.js | Hotkey handlers (handleTempUp/Down/ToggleMode) no longer add to dirtySettings — they write directly to iron via BLE, so pending/dirty tracking was spurious |
+| 95 | MEDIUM | hooks/usePinecil.js | applySettings now narrows dirtySettings via functional update: only removes names that succeeded in the current batch, preserving concurrent edits |
+| 96 | LOW | hooks/usePinecil.js | historyRef cleared on disconnect — prevents stale data lingering from previous connection |
+| 98 | LOW | hooks/usePinecil.js | Removed unnecessary [...historyRef.current] copy every 800ms — React state updater detects mutations |
+| 100 | MEDIUM | electron/main.js | ble.destroy() called on window close — cleans up noble listeners, polling, scan timeout |
+| 101 | MEDIUM | electron/ble/ble-manager.js | destroy() now clears _scanTimeout and calls _stopLiveData — prevents timer firing after cleanup |
+| 102 | LOW | electron/preload.js | Removed dead bleReconnect IPC exposure — renderer never uses it |
+| 104 | LOW | electron/preload.js | Removed dead ALLOWED entries (ble:stateChange, ble:toast), added ble:scanning |
+| 105 | COSMETIC | electron/ble/ble-manager.js | Removed duplicate _disconnecting = false initialization |
