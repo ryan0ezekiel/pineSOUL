@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bluetooth, Search, Link2, Unlink, RefreshCw, Plug, Signal, Loader2 } from 'lucide-react';
 
@@ -38,6 +38,7 @@ function DeviceCard({ device, onConnect }) {
 }
 
 export default function ConnectionPanel({ connection, devices, scanning, deviceInfo, onScan, onConnect, onDisconnect, connectionError }) {
+  const noop = useRef(() => {}).current;
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-4 border-b border-iron-800/50">
@@ -96,7 +97,7 @@ export default function ConnectionPanel({ connection, devices, scanning, deviceI
               <DeviceCard
                 key={device.address || device.id}
                 device={device}
-                onConnect={connection === 'connected' ? () => {} : onConnect}
+                onConnect={connection === 'connected' ? noop : onConnect}
               />
             ))
           ) : !scanning ? (

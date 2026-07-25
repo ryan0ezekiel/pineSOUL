@@ -27,24 +27,29 @@ class BleManager {
     this._lastSettings = null;
     this._pollingInterval = options.pollingInterval || 500;
     this._disconnecting = false; // guard against re-entrant disconnect
-
+    this._disconnecting = false; // guard against re-entrant disconnect
+    this._boundHandlers = null; // stored for cleanup on destroy
     // Bind noble events
     if (noble) {
-      noble.on('stateChange', (state) => {
-        console.log('BLE state:', state);
-        this._emit('stateChange', state);
-      });
+      this._boundHandlers = {
+        stateChange: (state) => {
+          console.log('BLE state:', state);
+          this._emit('stateChange', state);
+        },
+        discover: (peripheral) => {
+          if (peripheral.advertisement?.localName?.toLowerCase().includes('pinecil')) {
+            this._emit('deviceFound', {
+              name: peripheral.advertisement.localName,
+              address: peripheral.address,
+              rssi: peripheral.rssi,
+              id: peripheral.id,
+            });
+          }
+        },
+      };
 
-      noble.on('discover', (peripheral) => {
-        if (peripheral.advertisement?.localName?.toLowerCase().includes('pinecil')) {
-          this._emit('deviceFound', {
-            name: peripheral.advertisement.localName,
-            address: peripheral.address,
-            rssi: peripheral.rssi,
-            id: peripheral.id,
-          });
-        }
-      });
+      noble.on('stateChange', this._boundHandlers.stateChange);
+      noble.on('discover', this._boundHandlers.discover);
     }
   }
 
@@ -62,6 +67,19 @@ class BleManager {
    */
   getSettings() {
     return this._lastSettings;
+  }
+
+  /** Remove noble event listeners — call on app shutdown */
+  destroy() {
+    if (noble && this._boundHandlers) {
+      noble.removeListener('stateChange', this._boundHandlers.stateChange);
+      noble.removeListener('discover', this._boundHandlers.discover);
+      this._boundHandlers = null;
+    }
+    if (this._pollingInterval) {
+      clearInterval(this._pollingInterval);
+      this._pollingInterval = null;
+    }
   }
 
   setWindow(win) {

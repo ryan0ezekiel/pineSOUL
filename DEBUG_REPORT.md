@@ -93,3 +93,17 @@
 | 85 | LOW | ble/web-bluetooth.js | bleSetSetting/bleSaveToFlash: early-return if not connected |
 | 86 | LOW | TemperatureGraph.jsx | Dead ternary removed — both branches were identical |
 | 87 | MEDIUM | TitleBar.jsx, SettingsPanel.jsx | Added aria-labels on window controls (minimize/maximize/close) and hotkey +/- buttons |
+
+---
+
+## v1.0.8 — Loop 6 (2026-07-25)
+
+**5 bugs fixed** — Memory leak, security, race condition, stale closures.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 89 | MEDIUM | electron/ble/ble-manager.js | Noble event listeners stored as bound refs + added destroy() cleanup method |
+| 90 | MEDIUM | electron/preload.js | removeAllListeners IPC locked to whitelist of known ble: channels |
+| 91 | LOW | ConnectionPanel.jsx | Stable noop ref instead of inline arrow on every render |
+| 92 | — | (skipped) | startScan/connect already have try/catch — false alarm |
+| 93 | MEDIUM | ble/web-bluetooth.js | Added #scanning guard to prevent double-scan race |

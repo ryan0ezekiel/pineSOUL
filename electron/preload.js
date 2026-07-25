@@ -31,6 +31,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onSettingsLoaded: (callback) => onChannel('ble:settingsLoaded', callback),
   onError: (callback) => onChannel('ble:error', callback),
 
-  // Remove all listeners from a channel
-  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+  // Remove all listeners from a known BLE channel
+  removeAllListeners: (channel) => {
+    const ALLOWED = ['ble:liveData', 'ble:connectionChange', 'ble:deviceFound', 'ble:settingsLoaded', 'ble:stateChange', 'ble:toast', 'ble:error'];
+    if (ALLOWED.includes(channel)) {
+      ipcRenderer.removeAllListeners(channel);
+    }
+  },
 });

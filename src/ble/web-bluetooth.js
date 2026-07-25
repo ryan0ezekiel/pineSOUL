@@ -23,7 +23,9 @@ export class WebBleAdapter {
   #device = null;
   #server = null;
   #version = null;
+  #scanning = false; // prevent double-scan race
   #settingsMap = null;
+  #liveChar = null;
   #bulkMap = null;
   #listeners = {};
   #bulkDataChar = null;
@@ -55,12 +57,14 @@ export class WebBleAdapter {
 
   // ── Scan (shows browser-native device picker) ─────────────────────
   async bleScan() {
+    if (this.#scanning) return { ok: false, error: 'Scan already in progress' };
     if (!navigator.bluetooth) {
       this.#emit('error', { message: 'Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera on HTTPS.' });
       return { ok: false, error: 'Web Bluetooth not supported' };
     }
 
     try {
+      this.#scanning = true;
       const device = await navigator.bluetooth.requestDevice({
         filters: [
           { services: [SERVICES.SETTINGS_V221] },
@@ -93,9 +97,10 @@ export class WebBleAdapter {
 
       // Auto-connect after browser picker
       await this.#doConnect();
-
+      this.#scanning = false;
       return { ok: true };
     } catch (e) {
+      this.#scanning = false;
       if (e.name === 'NotFoundError') {
         // User cancelled the picker — not an error
         return { ok: false, error: 'No device selected' };
