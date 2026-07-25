@@ -26,7 +26,6 @@ export class WebBleAdapter {
   #version = null;
   #scanning = false; // prevent double-scan race
   #settingsMap = null;
-  #liveChar = null;
   #bulkMap = null;
   #listeners = {};
   #bulkDataChar = null;

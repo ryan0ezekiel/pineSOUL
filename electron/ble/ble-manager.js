@@ -19,7 +19,6 @@ class BleManager {
     this.scanning = false;
     this.settingsCharacteristics = [];
     this.bulkDataCharacteristic = null;
-    this.deviceInfoCharacteristic = null;
     this.liveDataInterval = null;
     this._scanTimeout = null;
     this.window = null;

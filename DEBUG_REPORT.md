@@ -1,7 +1,26 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 27 — v1.3.4  
-**Status:** 208 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22 + 3 Loop 27), 0 critical remaining
+**Last Updated:** Loop 35 — v1.3.5  
+**Status:** 210 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22 + 3 Loop 27 + 2 Loop 35), 0 critical remaining
+
+---
+
+## Cycle 35 Fixes (v1.3.5) — Dead Code Cleanup (8 deep cycles, all files audited)
+
+| # | Severity | Bug | File | Fix |
+|---|----------|-----|------|-----|
+| 209 | LOW | Dead field `#liveChar` — declared but never read or written anywhere in the class | `src/ble/web-bluetooth.js:29` | Removed |
+| 210 | LOW | Dead field `deviceInfoCharacteristic` — declared but never used; device info is extracted from `deviceInfo` object emitted by connect | `electron/ble/ble-manager.js:22` | Removed |
+
+### Audit Summary (Cycles A–H)
+- **Cycle A:** usePinecil.js — all 546 lines traced: state transitions, race conditions, ref sync, cleanup paths. Clean.
+- **Cycle B:** web-bluetooth.js — all 421 lines traced: BLE ops, error paths, event system, timeout handling. Clean (1 dead field fixed).
+- **Cycle C:** ble-manager.js — all 388 lines traced: noble events, scan/connect/disconnect, live data polling, re-entrancy guards. Clean (1 dead field fixed).
+- **Cycle D:** preload.js + main.js — IPC bridge, security (contextIsolation, nodeIntegration=false, sandbox), window lifecycle. Clean.
+- **Cycle E:** All 7 React components — rendering edge cases, memo correctness, accessibility (ARIA roles/labels/live regions), animation cleanup. Clean.
+- **Cycle F:** Constants parity — automated cross-check: 49 UUIDs, 57 names, 37 VALUE_LIMITS entries, 14 LIVE_DATA_FIELDS — all match between Electron and PWA. Zero drift.
+- **Cycle G:** Cross-cutting — console.log count: zero in src/, zero in electron/. No TODO/FIXME/HACK markers. No unused imports. Service worker cache strategy correct. CSP appropriate.
+- **Cycle H:** Final sweep — dead code, unused exports, stale patterns. Only the 2 dead fields found and fixed.
 
 ---
 
