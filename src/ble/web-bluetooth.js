@@ -352,7 +352,9 @@ export class WebBleAdapter {
         const settingsService = await withTimeout(
           this.#server.getPrimaryService(settingsServiceUUID), 10000, 'Settings service'
         );
-        this.#settingsChars[name] = await settingsService.getCharacteristic(uuid);
+        this.#settingsChars[name] = await withTimeout(
+          settingsService.getCharacteristic(uuid), 10000, `Get characteristic ${name}`
+        );
       }
 
       const encoded = encodeSetting(value);
@@ -384,7 +386,9 @@ export class WebBleAdapter {
       );
       const saveUUID = Object.keys(this.#settingsMap).find(k => this.#settingsMap[k] === 'save_to_flash');
       if (saveUUID) {
-        this.#saveChar = await settingsService.getCharacteristic(saveUUID);
+        this.#saveChar = await withTimeout(
+          settingsService.getCharacteristic(saveUUID), 10000, 'Get save characteristic'
+        );
         await withTimeout(this.#saveChar.writeValue(new Uint8Array([1])), 10000, 'Save to flash');
         return { ok: true };
       }
@@ -411,31 +415,8 @@ export class WebBleAdapter {
     if (event) this.#listeners[event] = [];
   }
 
-  // ── bleGetLiveData / bleGetSettings (no-ops, PWA uses notifications) ──
-  bleGetLiveData() { return null; }
-  bleGetSettings() { return null; }
-
   // ── Window controls (no-ops for PWA) ───────────────────────────────
   minimize() {}
   maximize() {}
   close() {}
-
-  // ── Hotkey config (localStorage for PWA) ──────────────────────────
-  async getConfig() {
-    try {
-      const raw = localStorage.getItem('pinesoul_hotkeys');
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  }
-
-  async saveConfig(config) {
-    try {
-      localStorage.setItem('pinesoul_hotkeys', JSON.stringify(config));
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: e.message };
-    }
-  }
 }

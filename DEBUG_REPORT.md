@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 14 — v1.1.7  
-**Status:** 169 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14), 0 critical remaining
+**Last Updated:** Loop 15 — v1.1.8  
+**Status:** 173 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15), 0 critical remaining
 
 ---
 
@@ -241,3 +241,14 @@
 | 167 | MEDIUM | electron/ble/ble-manager.js | saveToFlash() now writes 1-byte `Buffer([0x01])` matching PineSAM spec — was 2-byte `encodeSetting(1)` |
 | 168 | LOW | electron/ble/constants.js | Removed dead exports: OPERATING_MODES, OPERATING_MODE_COLORS, TEMP_LIMITS, SETTING_META |
 | 169 | LOW | electron/ble/ble-manager.js | encodeSetting null-check added — prevents writeAsync(null) crash on invalid input |
+
+## v1.1.8 — Loop 15 (2026-07-25)
+
+**4 bugs fixed** — PWA BLE timeout gaps, dead code removal.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 170 | MEDIUM | src/ble/web-bluetooth.js | bleSetSetting: added withTimeout() on getCharacteristic fallback — prevents hang on unresponsive device |
+| 171 | MEDIUM | src/ble/web-bluetooth.js | bleSaveToFlash: added withTimeout() on getCharacteristic fallback — same hang fix |
+| 172 | LOW | src/ble/web-bluetooth.js | Removed dead getConfig()/saveConfig() methods — never called (App.jsx manages hotkeys directly) |
+| 173 | LOW | src/ble/web-bluetooth.js | Removed dead bleGetLiveData()/bleGetSettings() no-ops — never called from usePinecil |
