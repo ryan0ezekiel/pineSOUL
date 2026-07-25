@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 13 — v1.1.6  
-**Status:** 165 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13), 0 critical remaining
+**Last Updated:** Loop 14 — v1.1.7  
+**Status:** 169 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14), 0 critical remaining
 
 ---
 
@@ -230,3 +230,14 @@
 | 163 | MEDIUM | .github/workflows/build.yml | Node.js version aligned to 22 across all jobs (was 20 for build, 22 for PWA deploy) |
 | 164 | LOW | README.md | Added missing ErrorBoundary.jsx, useToast.js, useMockData.js, build.yml to project structure |
 | 165 | LOW | electron/ble/ble-manager.js | Removed duplicate blank line (cosmetic) |
+
+## v1.1.7 — Loop 14 (2026-07-25)
+
+**4 bugs fixed** — Electron BLE protocol correctness, dead code removal, input validation.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 166 | MEDIUM | electron/ble/ble-manager.js | setSetting() now validates value is numeric before range check — prevents string coercion bugs |
+| 167 | MEDIUM | electron/ble/ble-manager.js | saveToFlash() now writes 1-byte `Buffer([0x01])` matching PineSAM spec — was 2-byte `encodeSetting(1)` |
+| 168 | LOW | electron/ble/constants.js | Removed dead exports: OPERATING_MODES, OPERATING_MODE_COLORS, TEMP_LIMITS, SETTING_META |
+| 169 | LOW | electron/ble/ble-manager.js | encodeSetting null-check added — prevents writeAsync(null) crash on invalid input |

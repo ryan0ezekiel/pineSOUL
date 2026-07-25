@@ -347,25 +347,41 @@ class BleManager {
     const uuid = this.protocol.getSettingUUID(name);
     if (!uuid) throw new Error(`Unknown setting: ${name}`);
 
+    // Validate value is numeric before range check
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      throw new Error(`Invalid value for ${name}: not a number`);
+    }
+
     const limits = VALUE_LIMITS[name];
     if (limits) {
       const [min, max] = limits;
-      if (value < min || value > max) {
-        throw new Error(`Value ${value} out of range for ${name}: [${min}, ${max}]`);
+      if (num < min || num > max) {
+        throw new Error(`Value ${num} out of range for ${name}: [${min}, ${max}]`);
       }
     }
 
     const char = this.settingsCharacteristics.find(c => c.uuid === uuid);
     if (!char) throw new Error(`Setting characteristic not found: ${name}`);
 
-    const encoded = this.protocol.encodeSetting(value);
+    const encoded = this.protocol.encodeSetting(num);
+    if (!encoded) throw new Error(`Failed to encode value for ${name}`);
     await char.writeAsync(encoded, false);
 
     return true;
   }
 
   async saveToFlash() {
-    return this.setSetting('save_to_flash', 1);
+    if (!this.connected) throw new Error('Not connected');
+    const uuid = this.protocol.getSettingUUID('save_to_flash');
+    if (!uuid) throw new Error('save_to_flash characteristic not found');
+    const char = this.settingsCharacteristics.find(c => c.uuid === uuid);
+    if (!char) throw new Error('save_to_flash characteristic not found');
+    // Write single byte 0x01 (matches PineSAM protocol spec)
+    const buf = Buffer.alloc(1);
+    buf.writeUInt8(1, 0);
+    await char.writeAsync(buf, false);
+    return true;
   }
 }
 
