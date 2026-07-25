@@ -120,7 +120,9 @@ pineSOUL/
 │   ├── index.css          # Global styles + glass effects
 │   ├── constants.js       # Setting metadata + value limits
 │   ├── hooks/
-│   │   └── usePinecil.js  # State management + BLE integration
+│   │   ├── usePinecil.js  # State management + BLE integration
+│   │   ├── useToast.js    # Toast notification state
+│   │   └── useMockData.js # Mock device data (dev only)
 │   ├── ble/               # PWA BLE adapter layer
 │   │   ├── index.js       # Runtime auto-loader
 │   │   ├── web-bluetooth.js # Web Bluetooth adapter
@@ -133,6 +135,7 @@ pineSOUL/
 │       ├── LiveDataPanel.jsx  # Live telemetry cards
 │       ├── SettingsPanel.jsx  # Settings editor with groups
 │       ├── ConnectionPanel.jsx # BLE device discovery
+│       ├── ErrorBoundary.jsx  # React error boundary
 │       └── Toast.jsx         # Toast notification system
 ├── public/                # PWA static assets
 │   ├── manifest.json      # PWA manifest
@@ -140,6 +143,7 @@ pineSOUL/
 │   └── icons/             # PWA icons (192, 512)
 ├── build/                 # Electron app icons
 ├── .github/workflows/
+│   ├── build.yml           # Build & release (Linux, Windows, macOS)
 │   └── deploy-pwa.yml     # Auto-deploy PWA to GitHub Pages
 ├── vite.config.js         # Vite config (Electron renderer)
 ├── vite.config.pwa.js     # Vite config (PWA standalone build)

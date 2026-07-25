@@ -116,7 +116,7 @@ export class WebBleAdapter {
       // Sanitize error before emission
       const safeError = {
         message: e.message || String(e),
-        stack: process.env.NODE_ENV === 'development' ? e.stack : undefined
+        stack: import.meta?.env?.MODE === 'development' ? e.stack : undefined
       };
 
       console.error('BLE scan error:', safeError);

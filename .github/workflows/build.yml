@@ -32,7 +32,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install Linux build deps
@@ -41,9 +41,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Build renderer (Vite)
-        run: npx vite build
 
       - name: Build Electron app
         run: npm run ${{ matrix.build_cmd }}
@@ -59,7 +56,7 @@ jobs:
           path: |
             release/*.AppImage
             release/*.deb
-            release/*.rpm
+            release/*.tar.xz
           if-no-files-found: warn
 
       - name: Upload Windows artifacts
@@ -69,6 +66,7 @@ jobs:
           name: windows-builds
           path: |
             release/*.exe
+            release/*.zip
           if-no-files-found: warn
 
       - name: Upload macOS artifacts
@@ -77,7 +75,7 @@ jobs:
         with:
           name: macos-builds
           path: |
-            release/*.dmg
+            release/*.zip
           if-no-files-found: warn
 
       - name: Attach to release
@@ -89,6 +87,7 @@ jobs:
             release/*.deb
             release/*.rpm
             release/*.exe
-            release/*.dmg
+            release/*.zip
+            release/*.tar.xz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

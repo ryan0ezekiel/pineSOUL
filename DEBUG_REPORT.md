@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 12 — v1.1.4  
-**Status:** 133 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
+**Last Updated:** Loop 13 — v1.1.6  
+**Status:** 165 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13), 0 critical remaining
 
 ---
 
@@ -217,3 +217,16 @@
 | 157 | MEDIUM | usePinecil.js | applySettings TOCTOU guard via ref — prevents concurrent call race |
 | 158 | MEDIUM | ble-manager.js | VALUE_LIMITS validation in Electron setSetting — matches PWA range checks |
 | 159 | LOW | usePinecil.js | Mock mode now updates liveData — gauges move alongside graph |
+
+## v1.1.6 — Loop 13 (2026-07-25)
+
+**6 bugs fixed** — Build system, documentation, runtime error, code hygiene.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 160 | **CRITICAL** | .github/workflows/build.yml | macOS artifact upload searched for `release/*.dmg` but target is `zip` — zero artifacts ever uploaded on macOS CI |
+| 161 | HIGH | src/ble/web-bluetooth.js | `process.env.NODE_ENV` undefined in browser — replaced with `import.meta?.env?.MODE` |
+| 162 | MEDIUM | .github/workflows/build.yml | Removed redundant `npx vite build` before `dist:linux` (dist:linux already runs vite build) |
+| 163 | MEDIUM | .github/workflows/build.yml | Node.js version aligned to 22 across all jobs (was 20 for build, 22 for PWA deploy) |
+| 164 | LOW | README.md | Added missing ErrorBoundary.jsx, useToast.js, useMockData.js, build.yml to project structure |
+| 165 | LOW | electron/ble/ble-manager.js | Removed duplicate blank line (cosmetic) |

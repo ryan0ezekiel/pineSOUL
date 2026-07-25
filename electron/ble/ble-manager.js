@@ -49,7 +49,6 @@ class BleManager {
     return this._lastSettings;
   }
 
-
   /** Remove noble event listeners — call on app shutdown */
   async destroy() {
     // Disconnect any active peripheral first (BUG #5: macOS stays alive after close)
