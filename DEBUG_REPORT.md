@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 15 — v1.1.8  
-**Status:** 173 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15), 0 critical remaining
+**Last Updated:** Loop 16 — v1.1.9  
+**Status:** 176 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16), 0 critical remaining
 
 ---
 
@@ -252,3 +252,13 @@
 | 171 | MEDIUM | src/ble/web-bluetooth.js | bleSaveToFlash: added withTimeout() on getCharacteristic fallback — same hang fix |
 | 172 | LOW | src/ble/web-bluetooth.js | Removed dead getConfig()/saveConfig() methods — never called (App.jsx manages hotkeys directly) |
 | 173 | LOW | src/ble/web-bluetooth.js | Removed dead bleGetLiveData()/bleGetSettings() no-ops — never called from usePinecil |
+
+## v1.1.9 — Loop 16 (2026-07-25)
+
+**3 bugs fixed** — React component code quality, parseInt radix, type consistency.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 174 | LOW | SettingsPanel.jsx | Moved getSelectOptions() before SettingRow — eliminates reliance on function hoisting |
+| 175 | LOW | SettingsPanel.jsx | Added radix 10 to all parseInt() calls — prevents octal interpretation edge cases |
+| 176 | LOW | LiveDataPanel.jsx | formatPowerSource default changed from `''` to `0` — consistent numeric fallback |

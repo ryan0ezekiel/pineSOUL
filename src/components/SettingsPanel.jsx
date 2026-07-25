@@ -23,6 +23,18 @@ const HIDDEN_SETTINGS = new Set([
   'save_to_flash', 'SettingsReset',
 ]);
 
+function getSelectOptions(name) {
+  const map = {
+    AutoStart:             [{ value: 0, label: 'Off' }, { value: 1, label: 'Heat' }, { value: 2, label: 'Sleep' }, { value: 3, label: 'Standby' }],
+    DisplayRotation:       [{ value: 0, label: 'Right' }, { value: 1, label: 'Left' }, { value: 2, label: 'Auto' }],
+    LockingMode:           [{ value: 0, label: 'Disabled' }, { value: 1, label: 'Boost Only' }, { value: 2, label: 'Full Lock' }],
+    TemperatureUnit:       [{ value: 0, label: '°C' }, { value: 1, label: '°F' }],
+    AnimSpeed:             [{ value: 0, label: 'Off' }, { value: 1, label: 'Slow' }, { value: 2, label: 'Medium' }, { value: 3, label: 'Fast' }],
+    DCInCutoff:            [{ value: 0, label: '10V' }, { value: 1, label: '12V' }, { value: 2, label: '14V' }, { value: 3, label: '16V' }, { value: 4, label: '18V' }],
+  };
+  return map[name] || null;
+}
+
 const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDirty }) {
   const limits = VALUE_LIMITS[name];
   const isToggle = meta.format && meta.format(0) === 'Off' && meta.format(1) === 'On';
@@ -65,7 +77,7 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
         </div>
         <select
           value={value ?? 0}
-          onChange={e => onChange(name, parseInt(e.target.value))}
+          onChange={e => onChange(name, parseInt(e.target.value, 10))}
           aria-label={meta.label}
           className="bg-iron-800 border border-iron-700/50 rounded-lg px-3 py-1 text-sm text-iron-200 focus:outline-none focus:border-soul-500/50 appearance-none cursor-pointer"
         >
@@ -311,7 +323,7 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
                     </div>
                     <select
                       value={appConfig?.graphWindow || 300}
-                      onChange={e => onUpdateAppConfig({ graphWindow: parseInt(e.target.value) })}
+                      onChange={e => onUpdateAppConfig({ graphWindow: parseInt(e.target.value, 10) })}
                       aria-label="Graph Time Window"
                       className="bg-iron-800 border border-iron-700/50 rounded-lg px-3 py-1 text-sm text-iron-200 focus:outline-none focus:border-soul-500/50 appearance-none cursor-pointer"
                     >
@@ -328,7 +340,7 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
                     </div>
                     <select
                       value={appConfig?.pollingRate || 500}
-                      onChange={e => onUpdateAppConfig({ pollingRate: parseInt(e.target.value) })}
+                      onChange={e => onUpdateAppConfig({ pollingRate: parseInt(e.target.value, 10) })}
                       aria-label="Polling Rate"
                       className="bg-iron-800 border border-iron-700/50 rounded-lg px-3 py-1 text-sm text-iron-200 focus:outline-none focus:border-soul-500/50 appearance-none cursor-pointer"
                     >
@@ -417,16 +429,4 @@ export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChan
       </div>
     </div>
   );
-}
-
-function getSelectOptions(name) {
-  const map = {
-    AutoStart:             [{ value: 0, label: 'Off' }, { value: 1, label: 'Heat' }, { value: 2, label: 'Sleep' }, { value: 3, label: 'Standby' }],
-    DisplayRotation:       [{ value: 0, label: 'Right' }, { value: 1, label: 'Left' }, { value: 2, label: 'Auto' }],
-    LockingMode:           [{ value: 0, label: 'Disabled' }, { value: 1, label: 'Boost Only' }, { value: 2, label: 'Full Lock' }],
-    TemperatureUnit:       [{ value: 0, label: '°C' }, { value: 1, label: '°F' }],
-    AnimSpeed:             [{ value: 0, label: 'Off' }, { value: 1, label: 'Slow' }, { value: 2, label: 'Medium' }, { value: 3, label: 'Fast' }],
-    DCInCutoff:            [{ value: 0, label: '10V' }, { value: 1, label: '12V' }, { value: 2, label: '14V' }, { value: 3, label: '16V' }, { value: 4, label: '18V' }],
-  };
-  return map[name] || null;
 }

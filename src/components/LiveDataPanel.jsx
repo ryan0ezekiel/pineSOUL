@@ -55,7 +55,7 @@ export default memo(function LiveDataPanel({
       <StatCard
         icon={Plug}
         label="Source"
-        value={formatPowerSource(liveData?.PowerSource ?? '')}
+        value={formatPowerSource(liveData?.PowerSource ?? 0)}
         color="text-iron-200"
         delay={0.15}
       />
