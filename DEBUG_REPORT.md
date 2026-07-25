@@ -1,7 +1,28 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 35 — v1.3.5  
-**Status:** 210 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22 + 3 Loop 27 + 2 Loop 35), 0 critical remaining
+**Last Updated:** Loop 36 — v1.3.6  
+**Status:** 211 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22 + 3 Loop 27 + 2 Loop 35 + 1 Loop 36), 0 critical remaining
+
+---
+
+## Cycle 36 Fixes (v1.3.6) — Behavioral Edge Case Cycles I–P (protocol, race conditions, component edge cases)
+
+| # | Severity | Bug | File | Fix |
+|---|----------|-----|------|-----|
+| 213 | MEDIUM | BLE reconnect race condition — disconnect is async; if a second connect() arrives while disconnect awaits `disconnectAsync()`, the guard returns immediately, new connection is established, but old disconnect then overwrites `this.device = null` and `this.connected = false` | `electron/ble/ble-manager.js:244-273` | Capture device reference before async disconnect; only clear state if device hasn't changed |
+
+### Cycle 36 Audit Summary (Cycles I–P)
+
+| Cycle | Area | Result |
+|-------|------|--------|
+| I | PWA protocol encode/parse edge cases | 0 bugs |
+| J | Electron protocol encode/parse edge cases | 0 bugs |
+| K | BLE reconnect race conditions | **1 bug (213)** |
+| L | TemperatureGraph edge cases | 0 bugs |
+| M | Toast edge cases | 0 bugs |
+| N | Hotkey recording edge cases | 0 bugs |
+| O | Service worker + CSP edge cases | 0 bugs |
+| P | App.jsx mock mode, localStorage, useEffect | 0 bugs |
 
 ---
 

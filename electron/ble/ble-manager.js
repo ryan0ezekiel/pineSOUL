@@ -253,20 +253,27 @@ class BleManager {
         this._scanTimeout = null;
       }
 
-      if (this.device) {
+      // Capture reference — if a new connect() replaces this.device while we
+      // await disconnectAsync, we must NOT overwrite the new connection's state.
+      const disconnectingDevice = this.device;
+
+      if (disconnectingDevice) {
         try {
-          await this.device.disconnectAsync();
+          await disconnectingDevice.disconnectAsync();
         } catch (e) {
           console.warn('Disconnect error:', e);
         }
       }
 
-      this.device = null;
-      this.connected = false;
-      this._lastLiveData = null;
-      this._lastSettings = null;
-      this.settingsCharacteristics = [];
-      this.bulkDataCharacteristic = null;
+      // Only clear state if no new connection was established in the meantime
+      if (this.device === disconnectingDevice) {
+        this.device = null;
+        this.connected = false;
+        this._lastLiveData = null;
+        this._lastSettings = null;
+        this.settingsCharacteristics = [];
+        this.bulkDataCharacteristic = null;
+      }
 
       this._emit('connectionChange', { status: 'disconnected', reason });
     } finally {
