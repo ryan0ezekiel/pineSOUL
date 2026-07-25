@@ -1,7 +1,17 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 22 — v1.3.3  
-**Status:** 205 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22), 0 critical remaining
+**Last Updated:** Loop 27 — v1.3.4  
+**Status:** 208 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22 + 3 Loop 27), 0 critical remaining
+
+---
+
+## Cycle 27 Fixes (v1.3.4) — React StrictMode + Dead Imports
+
+| # | Severity | Bug | File | Fix |
+|---|----------|-----|------|-----|
+| 206 | MEDIUM | `handleTempUp`/`handleTempDown` call `api.bleSetSetting()` and `updateSetting()` inside `setLiveData(prev => ...)` updater function. React 18 StrictMode calls updater functions twice in development, causing double BLE writes to the iron. | `src/hooks/usePinecil.js:446-472` | Moved side effects outside updater; read current values from `liveDataRef.current` instead of updater's `prev` |
+| 211 | LOW | Unused import `Clock` from lucide-react — never referenced in the component | `src/components/SettingsPanel.jsx:5` | Removed import |
+| 212 | LOW | Unused import `Keyboard` from lucide-react — never referenced in the component | `src/App.jsx:5` | Removed import |
 
 ---
 

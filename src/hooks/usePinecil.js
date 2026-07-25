@@ -443,32 +443,33 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   }, [settings.TemperatureUnit]);
 
   // ─── Keyboard actions (stable refs, no re-registration) ────────────
+  // BUG 206 FIX: Side effects moved outside setState updater to prevent
+  // double BLE writes in React 18 StrictMode (updaters called twice in dev).
+  // Use liveDataRef for reading current values — ref is always in sync
+  // via the effect on line 375, and keyboard repeat rate (30-50ms) is
+  // much slower than React's render cycle.
   const handleTempUp = useCallback((step) => {
     const stepVal = step || 10;
-    setLiveData(prev => {
-      const current = prev.SetTemp || 3200;
-      const newTemp = Math.min(current + stepVal, prev.MaxTipTempAbility || 4500);
-      if (!mock && api) {
-        // Send to iron immediately AND queue for "Save to Flash"
-        api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
-        updateSetting('SetTemperature', newTemp);
-      }
-      return { ...prev, SetTemp: newTemp };
-    });
+    const ld = liveDataRef.current;
+    const current = ld.SetTemp || 3200;
+    const newTemp = Math.min(current + stepVal, ld.MaxTipTempAbility || 4500);
+    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
+    if (!mock && api) {
+      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
+      updateSetting('SetTemperature', newTemp);
+    }
   }, [mock, updateSetting, api]);
 
   const handleTempDown = useCallback((step) => {
     const stepVal = step || 10;
-    setLiveData(prev => {
-      const current = prev.SetTemp || 3200;
-      const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
-      if (!mock && api) {
-        // Send to iron immediately AND queue for "Save to Flash"
-        api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
-        updateSetting('SetTemperature', newTemp);
-      }
-      return { ...prev, SetTemp: newTemp };
-    });
+    const ld = liveDataRef.current;
+    const current = ld.SetTemp || 3200;
+    const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
+    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
+    if (!mock && api) {
+      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
+      updateSetting('SetTemperature', newTemp);
+    }
   }, [mock, updateSetting, api]);
 
   const handleToggleMode = useCallback((targetTemp) => {

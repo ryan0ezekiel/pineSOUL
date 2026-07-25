@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Settings2, Bluetooth, Cpu,
-  Wifi, WifiOff, Keyboard
+  Wifi, WifiOff
 } from 'lucide-react';
 import { usePinecil } from './hooks/usePinecil';
 import TitleBar from './components/TitleBar';

@@ -2,7 +2,7 @@ import { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Moon, Power, Monitor, Settings2, Cpu,
-  Save, ChevronDown, Minus, Plus, Keyboard, Gauge, Clock
+  Save, ChevronDown, Minus, Plus, Keyboard, Gauge
 } from 'lucide-react';
 import { SETTING_META, VALUE_LIMITS } from '../constants.js';
 
