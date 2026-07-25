@@ -42,8 +42,17 @@ export default function Toast({ toasts = [], onDismiss }) {
   // Track creation timestamps so dismissed toasts don't reset remaining toasts' timers
   const createdRef = useRef(new Map());
 
+  const MAX_TOASTS = 5;
+
   useEffect(() => {
     if (!toasts.length || !onDismissRef.current) return;
+
+    // Auto-dismiss excess toasts (keep only the newest MAX_TOASTS)
+    if (toasts.length > MAX_TOASTS) {
+      const excess = toasts.slice(0, toasts.length - MAX_TOASTS);
+      excess.forEach((t) => onDismissRef.current?.(t.id));
+      return;
+    }
 
     // Prune timestamps for toasts that no longer exist
     for (const id of createdRef.current.keys()) {

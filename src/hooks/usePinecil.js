@@ -147,9 +147,11 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     const unsub1 = api.onConnectionChange?.((status) => {
       if (typeof status === 'string') {
         setConnection(status);
+        if (status === 'disconnected') historyRef.current = [];
         if (status === 'connected') setConnectionError(null);
       } else if (status?.status) {
         setConnection(status.status);
+        if (status.status === 'disconnected') historyRef.current = [];
         if (status.deviceInfo) setDeviceInfo(status.deviceInfo);
         if (status.error) setConnectionError(status.error);
         if (status.status === 'connected') setConnectionError(null);
@@ -332,7 +334,11 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
 
   // Save to flash
   const saveToFlash = useCallback(async () => {
-    await applySettings();
+    const applyResults = await applySettings();
+    if (applyResults?.some(r => !r.ok)) {
+      addToast('Some settings failed to apply — save aborted', 'error');
+      return;
+    }
     try {
       const result = await api?.bleSaveToFlash();
       if (result?.ok) addToast('Settings saved to flash!', 'success');
@@ -418,8 +424,9 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
     if (!mock && api) {
       api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
+      updateSetting('SetTemperature', newTemp);
     }
-  }, [mock]);
+  }, [mock, updateSetting]);
 
   const handleTempDown = useCallback((step) => {
     const ld = liveDataRef.current;
@@ -429,8 +436,9 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
     if (!mock && api) {
       api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
+      updateSetting('SetTemperature', newTemp);
     }
-  }, [mock]);
+  }, [mock, updateSetting]);
 
   const handleToggleMode = useCallback((targetTemp) => {
     const ld = liveDataRef.current;

@@ -5,6 +5,7 @@ import {
   SERVICES, SETTINGS_V221, BULK_DATA_V221,
   LIVE_DATA_FIELDS,
 } from './constants.js';
+import { VALUE_LIMITS } from '../constants.js';
 import {
   parseLiveData, parseSetting, encodeSetting,
   detectVersion, getSettingsMap, getBulkMap,
@@ -179,22 +180,18 @@ export class WebBleAdapter {
       });
 
       // Set up live data notifications + load settings
-      try {
-        await Promise.all([
-          this.#setupBulkData(),
-          this.#loadSettings(),
-        ]);
-        this.#connected = true;
-      } catch (setupErr) {
-        this.#connected = false;
-        throw setupErr;
-      }
+      await Promise.all([
+        this.#setupBulkData(),
+        this.#loadSettings(),
+      ]);
+      this.#connected = true;
 
     } catch (e) {
       this.#connected = false;
       this.#server = null;
       this.#emit('connectionChange', { status: 'disconnected' });
       this.#emit('error', { message: e.message || String(e) });
+      throw e;
     }
   }
 
@@ -316,6 +313,15 @@ export class WebBleAdapter {
   async bleSetSetting(name, value) {
     if (!this.#connected) return { ok: false, error: 'Not connected' };
     try {
+      const limits = VALUE_LIMITS[name];
+      if (limits) {
+        const [min, max] = limits;
+        if (value < min || value > max) {
+          this.#emit('error', { message: `Value ${value} out of range for ${name} (min ${min}, max ${max})` });
+          return { ok: false, error: 'out_of_range' };
+        }
+      }
+
       const char = this.#settingsChars[name];
       if (!char) {
         // Try to get the characteristic on the fly

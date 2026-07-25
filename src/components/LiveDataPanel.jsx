@@ -39,7 +39,7 @@ export default memo(function LiveDataPanel({
       <StatCard
         icon={Zap}
         label="Voltage"
-        value={formatVoltage(liveData.Voltage)}
+        value={formatVoltage(liveData?.Voltage ?? 0)}
         unit="V"
         color="text-soul-400"
         delay={0.05}
@@ -47,7 +47,7 @@ export default memo(function LiveDataPanel({
       <StatCard
         icon={Gauge}
         label="Power"
-        value={liveData.Watts || 0}
+        value={liveData?.Watts ?? 0}
         unit="W"
         color="text-soul-400"
         delay={0.1}
@@ -55,14 +55,14 @@ export default memo(function LiveDataPanel({
       <StatCard
         icon={Plug}
         label="Source"
-        value={formatPowerSource(liveData.PowerSource)}
+        value={formatPowerSource(liveData?.PowerSource ?? '')}
         color="text-iron-200"
         delay={0.15}
       />
       <StatCard
         icon={Thermometer}
         label="Handle"
-        value={formatHandleTemp(liveData.HandleTemp)}
+        value={formatHandleTemp(liveData?.HandleTemp ?? 0)}
         unit={displayUnit || '°C'}
         color="text-iron-200"
         delay={0.2}
@@ -70,7 +70,7 @@ export default memo(function LiveDataPanel({
       <StatCard
         icon={Signal}
         label="Tip"
-        value={formatTipRes(liveData.TipResistance)}
+        value={formatTipRes(liveData?.TipResistance ?? 0)}
         unit="Ω"
         color="text-iron-200"
         delay={0.25}
@@ -78,7 +78,7 @@ export default memo(function LiveDataPanel({
       <StatCard
         icon={Clock}
         label="Uptime"
-        value={formatUptime(liveData.Uptime)}
+        value={formatUptime(liveData?.Uptime ?? 0)}
         color="text-iron-200"
         delay={0.3}
       />

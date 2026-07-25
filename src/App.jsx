@@ -12,6 +12,7 @@ import LiveDataPanel from './components/LiveDataPanel';
 import SettingsPanel from './components/SettingsPanel';
 import ConnectionPanel from './components/ConnectionPanel';
 import Toast from './components/Toast';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const TABS = [
   { key: 'control',  label: 'Control', icon: Flame },
@@ -96,15 +97,16 @@ export default function App() {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       const hc = hotkeyConfig;
-      const key = e.key === hc.toggleMode || e.code === hc.toggleMode ? hc.toggleMode : e.key;
+      // Check both e.key and e.code so recorder-stored values (e.g. 'Space') match
+      const matches = (v) => e.key === v || e.code === v;
 
-      if (key === hc.tempUp) {
+      if (matches(hc.tempUp)) {
         e.preventDefault();
         p.handleTempUp(hc.tempStep);
-      } else if (key === hc.tempDown) {
+      } else if (matches(hc.tempDown)) {
         e.preventDefault();
         p.handleTempDown(hc.tempStep);
-      } else if (key === hc.toggleMode) {
+      } else if (matches(hc.toggleMode)) {
         e.preventDefault();
         p.handleToggleMode(hc.toggleTemp);
       }
@@ -118,6 +120,7 @@ export default function App() {
   }, [hotkeyConfig, p.handleTempUp, p.handleTempDown, p.handleToggleMode]);
 
   return (
+    <ErrorBoundary>
     <div className="h-screen flex flex-col bg-iron-950 overflow-hidden">
       <TitleBar connection={p.connection} deviceInfo={p.deviceInfo} />
 
@@ -304,5 +307,6 @@ export default function App() {
         </main>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

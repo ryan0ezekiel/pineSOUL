@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 9 — v1.1.1  
-**Status:** 104 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
+**Last Updated:** Loop 10 — v1.1.2  
+**Status:** 114 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
 
 ---
 
@@ -167,3 +167,20 @@
 | 128 | MEDIUM | preload.js + usePinecil.js | Exposed onScanning(); renderer uses backend scanning events instead of local timeout |
 | 129 | LOW | usePinecil.js | Clear scanTimeoutRef when connection state changes to 'connected' |
 | 130 | LOW | main.js | Removed dead globalShortcut import, deprecated HiDPI Chromium switches; added sandbox: true |
+
+## v1.1.2 — Loop 10 (2026-07-25)
+
+**10 bugs fixed** — Error Boundaries, BLE connection accuracy, hotkey/settings sync, null safety, performance.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 131 | CRITICAL | App.jsx + new ErrorBoundary.jsx | Added React ErrorBoundary with styled fallback UI (Bug 1, deferred from Loop 8) |
+| 132 | CRITICAL | web-bluetooth.js | bleConnect() now re-throws #doConnect errors — returns {ok:false} on failure instead of always {ok:true} |
+| 133 | HIGH | web-bluetooth.js | writeValue enforces VALUE_LIMITS — returns {ok:false, error:'out_of_range'} for out-of-bounds writes |
+| 134 | HIGH | usePinecil.js | Hotkey tempUp/tempDown now call updateSetting() — syncs dirtySettings and SettingsPanel |
+| 135 | MEDIUM | usePinecil.js | saveToFlash checks applySettings results before saving — aborts with error toast on failure |
+| 136 | MEDIUM | usePinecil.js | historyRef cleared on unexpected disconnect — prevents stale graph data on reconnect |
+| 137 | MEDIUM | App.jsx | Hotkey matching uses e.key OR e.code check — fixes Space key for toggleMode |
+| 138 | MEDIUM | LiveDataPanel.jsx | Null-safe liveData access with optional chaining on all 6 stat values |
+| 139 | LOW | Toast.jsx | Max 5 toasts cap — oldest auto-dismissed when limit exceeded |
+| 140 | LOW | TemperatureGraph.jsx | Math.max spread replaced with reduce — prevents stack overflow at high data volumes |
