@@ -100,6 +100,8 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const historyRef = useRef([]);
   const listenersRef = useRef([]);
   const liveDataRef = useRef({ SetTemp: 3200, MaxTipTempAbility: 4500, OperatingMode: 0, LiveTemp: 250 });
+  const connectionRef = useRef('disconnected');
+  const applySettingsRef = useRef(null);
 
   // Toast helper — just adds, Toast component handles auto-dismiss
   const addToast = useCallback((message, type = 'error') => {
@@ -130,11 +132,13 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       const now = Date.now();
       const baseTemp = 3100 + Math.sin(now / 5000) * 150; // 0.1°C
       const noise = (Math.random() - 0.5) * 80;
+      const liveTemp = Math.round(baseTemp + noise);
+      const watts = Math.round(45 + Math.random() * 20);
       historyRef.current = [
         ...historyRef.current.slice(-(MAX_HISTORY - 1)),
-        { timestamp: now, liveTemp: Math.round(baseTemp + noise), setTemp: 3200, watts: 45 + Math.random() * 20 }
+        { timestamp: now, liveTemp, setTemp: 3200, watts }
       ];
-      // Don't update state here — the 800ms sync interval handles it
+      setLiveData(prev => ({ ...prev, LiveTemp: liveTemp, Watts: watts }));
     }, pollingRate);
     return () => clearInterval(interval);
   }, [mock, pollingRate]);
@@ -307,11 +311,19 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   // Apply all pending settings — snapshot + clear atomically to avoid losing concurrent edits
   const applySettings = useCallback(async () => {
     if (!api) return [];
+    // TOCTOU guard: if a previous apply is in-flight, return its promise
+    if (applySettingsRef.current) return applySettingsRef.current;
+    const promise = (async () => {
     // Snapshot current pending and clear immediately so new edits accumulate separately
     const batch = { ...pendingSettings.current };
     pendingSettings.current = {};
     const results = [];
     for (const [name, value] of Object.entries(batch)) {
+      // Abort if disconnected mid-loop to avoid flooding failed BLE calls
+      if (connectionRef.current !== 'connected') {
+        results.push({ name, ok: false, error: 'Device disconnected' });
+        continue;
+      }
       try {
         const result = await api.bleSetSetting(name, value);
         results.push({ name, ...result });
@@ -332,6 +344,13 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     // Only clear settingsChanged if no new edits arrived during the await loop
     setSettingsChanged(Object.keys(pendingSettings.current).length > 0);
     return results;
+    })(); // end IIFE
+    applySettingsRef.current = promise;
+    try {
+      return await promise;
+    } finally {
+      applySettingsRef.current = null;
+    }
   }, []);
 
   // Save to flash
@@ -355,6 +374,11 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   useEffect(() => {
     liveDataRef.current = liveData;
   }, [liveData]);
+
+  // Keep connectionRef in sync for applySettings abort check
+  useEffect(() => {
+    connectionRef.current = connection;
+  }, [connection]);
 
   // Clean up scanning timeout on unmount
   useEffect(() => {
@@ -419,28 +443,30 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
 
   // ─── Keyboard actions (stable refs, no re-registration) ────────────
   const handleTempUp = useCallback((step) => {
-    const ld = liveDataRef.current;
-    const current = ld.SetTemp || 3200;
     const stepVal = step || 10;
-    const newTemp = Math.min(current + stepVal, ld.MaxTipTempAbility || 4500);
-    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
-    if (!mock && api) {
-      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
-      updateSetting('SetTemperature', newTemp);
-    }
-  }, [mock, updateSetting]);
+    setLiveData(prev => {
+      const current = prev.SetTemp || 3200;
+      const newTemp = Math.min(current + stepVal, prev.MaxTipTempAbility || 4500);
+      if (!mock && api) {
+        api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
+        updateSetting('SetTemperature', newTemp);
+      }
+      return { ...prev, SetTemp: newTemp };
+    });
+  }, [mock, updateSetting, api]);
 
   const handleTempDown = useCallback((step) => {
-    const ld = liveDataRef.current;
-    const current = ld.SetTemp || 3200;
     const stepVal = step || 10;
-    const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
-    setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
-    if (!mock && api) {
-      api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
-      updateSetting('SetTemperature', newTemp);
-    }
-  }, [mock, updateSetting]);
+    setLiveData(prev => {
+      const current = prev.SetTemp || 3200;
+      const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
+      if (!mock && api) {
+        api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
+        updateSetting('SetTemperature', newTemp);
+      }
+      return { ...prev, SetTemp: newTemp };
+    });
+  }, [mock, updateSetting, api]);
 
   const handleToggleMode = useCallback((targetTemp) => {
     const ld = liveDataRef.current;

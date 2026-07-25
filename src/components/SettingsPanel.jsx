@@ -198,6 +198,7 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
       <button
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
+        aria-controls={`group-${groupKey}`}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-iron-800/30 transition-colors"
       >
         <div className="flex items-center gap-2.5">
@@ -224,7 +225,7 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-2 pb-2 divide-y divide-iron-800/50">
+            <div id={`group-${groupKey}`} className="px-2 pb-2 divide-y divide-iron-800/50">
               {isHotkeyGroup ? (
                 <>
                   <div className="px-3 py-2">
@@ -312,6 +313,7 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
                     <select
                       value={appConfig?.graphWindow || 300}
                       onChange={e => onUpdateAppConfig({ graphWindow: parseInt(e.target.value) })}
+                      aria-label="Graph Time Window"
                       className="bg-iron-800 border border-iron-700/50 rounded-lg px-3 py-1 text-sm text-iron-200 focus:outline-none focus:border-soul-500/50 appearance-none cursor-pointer"
                     >
                       <option value={60}>1 min</option>
@@ -328,6 +330,7 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
                     <select
                       value={appConfig?.pollingRate || 500}
                       onChange={e => onUpdateAppConfig({ pollingRate: parseInt(e.target.value) })}
+                      aria-label="Polling Rate"
                       className="bg-iron-800 border border-iron-700/50 rounded-lg px-3 py-1 text-sm text-iron-200 focus:outline-none focus:border-soul-500/50 appearance-none cursor-pointer"
                     >
                       <option value={100}>100 ms</option>

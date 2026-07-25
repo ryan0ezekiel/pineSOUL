@@ -87,7 +87,7 @@ export default memo(function ConnectionPanel({ connection, devices, scanning, de
               )}
             </button>
             {connectionError && (
-              <p className="text-xs text-red-400 text-center">{connectionError}</p>
+              <p className="text-xs text-red-400 text-center" role="alert" aria-live="assertive">{connectionError}</p>
             )}
           </div>
         )}
@@ -117,8 +117,8 @@ export default memo(function ConnectionPanel({ connection, devices, scanning, de
               </p>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-              <RefreshCw className="w-8 h-8 text-soul-500/50 animate-spin mb-3" />
+            <div className="flex flex-col items-center justify-center h-full text-center py-12" role="status">
+              <RefreshCw className="w-8 h-8 text-soul-500/50 animate-spin mb-3" aria-hidden="true" />
               <p className="text-sm text-iron-400">Searching for Pinecil devices…</p>
               <p className="text-xs text-iron-600 mt-1">Make sure your iron is powered on nearby.</p>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Settings2, Bluetooth, Cpu,
@@ -62,6 +62,8 @@ export default function App() {
   const mock = !window.electronAPI && import.meta.env.DEV;
   const [hotkeyConfig, setHotkeyConfigState] = useState(loadHotkeyConfig);
   const [appConfig, setAppConfigState] = useState(loadAppConfig);
+  const tabPanelRef = useRef(null);
+  const tabId = useId();
 
   const updateHotkeyConfig = useCallback((updates) => {
     setHotkeyConfigState(prev => {
@@ -91,10 +93,11 @@ export default function App() {
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     const handleKeyDown = (e) => {
-      // Ignore when typing in inputs
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-      // Ignore modifiers
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Ignore when typing in inputs or focused on interactive elements
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON' || e.target.closest('button') || e.target.closest('a')) return;
+      // Ignore modifiers (Shift included — Shift+= produces '+' not '=')
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
 
       const hc = hotkeyConfig;
       // Check both e.key and e.code so recorder-stored values (e.g. 'Space') match
@@ -119,6 +122,20 @@ export default function App() {
     };
   }, [hotkeyConfig, p.handleTempUp, p.handleTempDown, p.handleToggleMode]);
 
+  // Focus management: move focus into the tab panel when the active tab changes
+  useEffect(() => {
+    const panel = tabPanelRef.current;
+    if (!panel) return;
+    // Delay to let AnimatePresence mount the new panel
+    const timer = setTimeout(() => {
+      const focusable = panel.querySelector(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable) focusable.focus();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [p.activeTab]);
+
   return (
     <ErrorBoundary>
     <div className="h-screen flex flex-col bg-iron-950 overflow-hidden">
@@ -136,9 +153,13 @@ export default function App() {
             return (
               <button
                 key={tab.key}
+                id={`${tabId}-${tab.key}`}
                 onClick={() => p.setActiveTab(tab.key)}
                 aria-label={tab.label}
-                aria-current={active ? 'page' : undefined}
+                aria-selected={active}
+                aria-controls={`${tabId}-${tab.key}-panel`}
+                role="tab"
+                tabIndex={active ? 0 : -1}
                 className={`relative w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 group ${
                   active
                     ? 'bg-soul-500/15 text-soul-400'
@@ -177,6 +198,10 @@ export default function App() {
             {p.activeTab === 'control' && (
               <motion.div
                 key="control"
+                role="tabpanel"
+                aria-labelledby={`${tabId}-control`}
+                id={`${tabId}-control-panel`}
+                ref={tabPanelRef}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
@@ -262,6 +287,10 @@ export default function App() {
             {p.activeTab === 'settings' && (
               <motion.div
                 key="settings"
+                role="tabpanel"
+                aria-labelledby={`${tabId}-settings`}
+                id={`${tabId}-settings-panel`}
+                ref={tabPanelRef}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
@@ -285,6 +314,10 @@ export default function App() {
             {p.activeTab === 'connect' && (
               <motion.div
                 key="connect"
+                role="tabpanel"
+                aria-labelledby={`${tabId}-connect`}
+                id={`${tabId}-connect-panel`}
+                ref={tabPanelRef}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}

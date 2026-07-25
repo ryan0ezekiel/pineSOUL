@@ -22,9 +22,4 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
   },
-  resolve: {
-    alias: {
-      // No alias needed — ble/index.js handles adapter selection
-    },
-  },
 })

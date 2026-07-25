@@ -178,6 +178,8 @@ export class WebBleAdapter {
         firmwareVersion: this.#version,
       };
 
+      this.#connected = true;
+
       this.#emit('connectionChange', {
         status: 'connected',
         deviceInfo,
@@ -188,7 +190,6 @@ export class WebBleAdapter {
         this.#setupBulkData(),
         this.#loadSettings(),
       ]);
-      this.#connected = true;
 
     } catch (e) {
       this.#connected = false;
@@ -394,6 +395,7 @@ export class WebBleAdapter {
       'ble:deviceFound': 'deviceFound',
       'ble:settingsLoaded': 'settingsLoaded',
       'ble:error': 'error',
+      'ble:scanning': 'scanning',
     };
     const event = eventMap[channel];
     if (event) this.#listeners[event] = [];

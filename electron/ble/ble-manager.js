@@ -9,6 +9,7 @@ try {
 }
 
 const { PinecilProtocol } = require('./protocol.js');
+const { VALUE_LIMITS } = require('./constants.js');
 
 class BleManager {
   constructor(options = {}) {
@@ -308,9 +309,13 @@ class BleManager {
 
     if (!this.bulkDataCharacteristic) return;
 
+    let readInFlight = false;
+
     this.liveDataInterval = setInterval(async () => {
       if (!this.connected || !this.bulkDataCharacteristic) return;
+      if (readInFlight) return; // skip if previous read still in-flight
 
+      readInFlight = true;
       try {
         const value = await this.bulkDataCharacteristic.readAsync();
         const data = this.protocol.parseLiveData(value);
@@ -324,6 +329,8 @@ class BleManager {
         if (!this.device?.connected) {
           this.disconnect('connection_lost');
         }
+      } finally {
+        readInFlight = false;
       }
     }, this._pollingInterval);
   }
@@ -340,6 +347,14 @@ class BleManager {
 
     const uuid = this.protocol.getSettingUUID(name);
     if (!uuid) throw new Error(`Unknown setting: ${name}`);
+
+    const limits = VALUE_LIMITS[name];
+    if (limits) {
+      const [min, max] = limits;
+      if (value < min || value > max) {
+        throw new Error(`Value ${value} out of range for ${name}: [${min}, ${max}]`);
+      }
+    }
 
     const char = this.settingsCharacteristics.find(c => c.uuid === uuid);
     if (!char) throw new Error(`Setting characteristic not found: ${name}`);

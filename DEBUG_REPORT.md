@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 11 — v1.1.3  
-**Status:** 126 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
+**Last Updated:** Loop 12 — v1.1.4  
+**Status:** 133 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8), 0 critical remaining
 
 ---
 
@@ -203,3 +203,17 @@
 | 150 | MEDIUM | main.js | Navigation guard blocks non-app origins |
 | 151 | LOW | preload.js | Type checking on updateSetting/setHotkeyConfig arguments |
 | 152 | LOW | main.js | Quit-race fix — tracks destroyPromise to prevent premature exit |
+
+## v1.1.4 — Loop 12 (2026-07-25)
+
+**7 bugs fixed** — Race conditions, TOCTOU guards, missing validation.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 153 | HIGH | web-bluetooth.js | #connected set BEFORE emit('connected') — eliminates write-rejection window |
+| 154 | HIGH | ble-manager.js | readInFlight guard in _startLiveData() — prevents overlapping async BLE reads |
+| 155 | HIGH | usePinecil.js | handleTempUp/Down use functional setLiveData updater — rapid keypresses no longer skip steps |
+| 156 | MEDIUM | web-bluetooth.js | removeAllListeners now includes 'ble:scanning' channel |
+| 157 | MEDIUM | usePinecil.js | applySettings TOCTOU guard via ref — prevents concurrent call race |
+| 158 | MEDIUM | ble-manager.js | VALUE_LIMITS validation in Electron setSetting — matches PWA range checks |
+| 159 | LOW | usePinecil.js | Mock mode now updates liveData — gauges move alongside graph |

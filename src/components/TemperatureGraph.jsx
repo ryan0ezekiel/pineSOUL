@@ -182,7 +182,14 @@ export default memo(function TemperatureGraph({
         viewBox={`0 0 ${NOMINAL_WIDTH} ${height}`}
         className="w-full h-full"
         preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`Temperature history graph over the last ${windowSeconds >= 60 ? Math.round(windowSeconds / 60) : windowSeconds}${windowSeconds >= 60 ? ' minutes' : ' seconds'}. Current unit: ${displayUnit}`}
       >
+        <title>Temperature History</title>
+        <desc>
+          Line graph showing current temperature (orange) and target temperature (dashed yellow) over time.
+          {pathData === '' ? ' No data available yet.' : ''}
+        </desc>
         <defs>
           {/* Glow filter for current temp line */}
           <filter id={`${svgId}-tempGlow`} x="-20%" y="-20%" width="140%" height="140%">

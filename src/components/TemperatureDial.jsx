@@ -52,7 +52,10 @@ export default memo(function TemperatureDial({ liveData, mode, currentTempPercen
         height={RING_SIZE}
         viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
         className="relative z-10"
+        role="img"
+        aria-label={`Temperature dial: ${formatTemp ? formatTemp(currentTemp) : Math.round(currentTemp)}${displayUnit || '°C'}, target ${formatTemp ? formatTemp(setTemp) : Math.round(setTemp)}${displayUnit || '°C'}`}
       >
+        <title>Temperature Dial</title>
         <defs>
           <linearGradient id={`${svgId}-setTempGrad`} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={glowColor} stopOpacity="0.15" />
