@@ -80,12 +80,10 @@ export class WebBleAdapter {
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
         optionalServices: [
-          // Settings services (v2.20 and v2.21)
-          'f6d75f91-5a10-4eba-a233-47d3f26a907f',
-          'f6d80000-5a10-4eba-aa55-33e27f9bc533',
-          // Bulk data services (v2.20 and v2.21)
-          '9eae1adb-9d0d-48c5-a6e7-ae93f0ea37b0',
-          '9eae1000-9d0d-48c5-aa55-33e27f9bc533',
+          SERVICES.SETTINGS_V220,
+          SERVICES.SETTINGS_V221,
+          SERVICES.BULK_DATA_V220,
+          SERVICES.BULK_DATA_V221,
         ],
       });
 

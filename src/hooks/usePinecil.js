@@ -170,7 +170,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       // Append to temperature history
       const entry = { timestamp: Date.now(), liveTemp: data.LiveTemp, setTemp: data.SetTemp, watts: data.Watts };
       historyRef.current = [...historyRef.current.slice(-(MAX_HISTORY - 1)), entry];
-      // Batch-update state every second
+      // Batch-update state every 800ms
     });
     if (unsub2) unsubs.push(unsub2);
 
