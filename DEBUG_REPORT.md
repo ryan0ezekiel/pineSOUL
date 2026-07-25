@@ -1,7 +1,7 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 19 — v1.2.2  
-**Status:** 185 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19), 0 critical remaining
+**Last Updated:** Loop 20 — v1.2.3  
+**Status:** 189 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20), 0 critical remaining
 
 ---
 
@@ -292,3 +292,14 @@
 | 183 | LOW | src/constants.js | Added PDVpdoEnabled to SETTING_META — was missing from UI despite being in VALUE_LIMITS |
 | 184 | LOW | src/ble/constants.js | Added clarifying comment on SETTINGS_V220 copy — explains why it's identical to V221 |
 | 185 | LOW | electron/ble/constants.js | Comment already present (verified); PWA constants aligned |
+
+## v1.2.3 — Loop 20 (2026-07-25)
+
+**4 bugs fixed** — Dead CSS removal, redundant styles, CSS size reduction.
+
+| # | Severity | File | Fix |
+|---|----------|------|-----|
+| 186 | LOW | src/index.css | Removed dead `ring-glow` keyframes — never referenced in any component |
+| 187 | LOW | src/index.css | Removed dead `dial-pulse` class and keyframes — never referenced |
+| 188 | LOW | src/index.css | Removed dead `bg-mesh` class — never referenced |
+| 189 | LOW | src/index.css | Removed redundant `-webkit-font-smoothing`/`-moz-osx-font-smoothing` — `@apply antialiased` already handles it. CSS: 21.10 → 20.70 kB |
