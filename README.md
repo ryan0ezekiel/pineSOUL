@@ -121,8 +121,6 @@ pineSOUL/
 │   ├── constants.js       # Setting metadata + value limits
 │   ├── hooks/
 │   │   ├── usePinecil.js  # State management + BLE integration
-│   │   ├── useToast.js    # Toast notification state
-│   │   └── useMockData.js # Mock device data (dev only)
 │   ├── ble/               # PWA BLE adapter layer
 │   │   ├── index.js       # Runtime auto-loader
 │   │   ├── web-bluetooth.js # Web Bluetooth adapter

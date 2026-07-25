@@ -15,9 +15,9 @@ function isWebBluetoothAvailable() {
 
 if (!isElectron()) {
   if (isWebBluetoothAvailable()) {
-    console.log('[pineSOUL] Web Bluetooth detected — using WebBleAdapter');
+    console.debug('[pineSOUL] Web Bluetooth detected — using WebBleAdapter');
     window.electronAPI = new WebBleAdapter();
   } else {
-    console.log('[pineSOUL] Web Bluetooth not available — running in mock/demo mode');
+    console.debug('[pineSOUL] Web Bluetooth not available — running in mock/demo mode');
   }
 }

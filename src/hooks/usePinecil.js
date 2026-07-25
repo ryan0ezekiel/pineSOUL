@@ -103,9 +103,11 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const connectionRef = useRef('disconnected');
   const applySettingsRef = useRef(null);
 
+  const toastIdRef = useRef(0);
+
   // Toast helper — just adds, Toast component handles auto-dismiss
   const addToast = useCallback((message, type = 'error') => {
-    const id = Date.now() + Math.random();
+    const id = ++toastIdRef.current;
     setToasts(prev => [...prev, { id, message, type }]);
   }, []);
 
