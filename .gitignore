@@ -3,6 +3,7 @@ dist/
 release/
 *.png
 !build/*.png
+!public/build/*.png
 !docs/*.png
 .env
 .DS_Store

@@ -233,9 +233,7 @@ export class WebBleAdapter {
   // ── Live Data (subscribe to BulkData notifications) ────────────────
   async #setupBulkData() {
     try {
-      const bulkUUID = Object.keys(this.#bulkMap).find(
-        k => this.#bulkMap[k] === 'BulkData'
-      );
+      const bulkUUID = this.#bulkMap['BulkData'];
       if (!bulkUUID) return;
 
       const bulkServiceUUID = this.#version === 'v2.21'

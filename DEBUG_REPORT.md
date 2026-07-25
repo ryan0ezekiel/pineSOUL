@@ -1,7 +1,16 @@
 # pineSOUL Debug Report
 
-**Last Updated:** Loop 21 — v1.3.2  
-**Status:** 203 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21), 0 critical remaining
+**Last Updated:** Loop 22 — v1.3.3  
+**Status:** 205 bugs fixed (30 original + 15 Loop 1 + 3 Loop 2 + 6 Loop 3 + 7 Loop 4 + 7 Loop 5 + 4 Loop 6 + 9 Loop 7 + 16 Loop 8 + 7 Loop 9 + 10 Loop 10 + 12 Loop 11 + 7 Loop 12 + 6 Loop 13 + 4 Loop 14 + 4 Loop 15 + 3 Loop 16 + 3 Loop 17 + 3 Loop 18 + 3 Loop 19 + 4 Loop 20 + 12 Loop 21 + 2 Loop 22), 0 critical remaining
+
+---
+
+## Cycle 22 Fixes (v1.3.3) — PWA Bulk Data + Favicon
+
+| # | Severity | Bug | File | Fix |
+|---|----------|-----|------|-----|
+| 204 | **CRITICAL** | PWA `#setupBulkData()` inverted map — `Object.keys().find(k => map[k] === 'BulkData')` always returns `undefined` because map is `{name: UUID}`, not `{UUID: name}`. **Live data streaming completely broken in PWA** — users see connected state but no temperature/power data. | `src/ble/web-bluetooth.js:236-238` | Direct `this.#bulkMap['BulkData']` lookup |
+| 205 | LOW | Favicon `href="/build/icon.png"` in `index.html` — file exists at `build/icon.png` (project root for electron-builder) but not in `public/build/`, so Vite never copies it to output. Favicon 404s. | `index.html:13` | Copied `build/icon.png` to `public/build/icon.png` |
 
 ---
 
