@@ -27,7 +27,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   bleDisconnect: () => ipcRenderer.invoke('ble:disconnect'),
 
-  bleSetSetting: (name, value) => ipcRenderer.invoke('ble:setSetting', name, value),
+  bleSetSetting: (name, value) => {
+    if (typeof name !== 'string' || (typeof value !== 'number' || !Number.isFinite(value))) {
+      return Promise.resolve({ ok: false, error: 'Invalid arguments' });
+    }
+    return ipcRenderer.invoke('ble:setSetting', name, value);
+  },
   bleSaveToFlash: () => ipcRenderer.invoke('ble:saveToFlash'),
 
   // Event listeners (returns cleanup function)

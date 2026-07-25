@@ -99,6 +99,9 @@ ipcMain.handle('ble:setSetting', async (_, name, value) => {
   if (typeof name !== 'string') {
     return { ok: false, error: 'Invalid setting name' };
   }
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return { ok: false, error: 'Invalid setting value — must be a finite number' };
+  }
   try { await ble.setSetting(name, value); return { ok: true }; }
   catch (e) { return { ok: false, error: e.message }; }
 });
