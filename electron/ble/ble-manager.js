@@ -26,6 +26,7 @@ class BleManager {
     this._lastLiveData = null;
     this._lastSettings = null;
     this._pollingInterval = options.pollingInterval || 500;
+    this._disconnecting = false; // guard against re-entrant disconnect
 
     // Bind noble events
     if (noble) {
@@ -69,7 +70,8 @@ class BleManager {
 
   _emit(channel, data) {
     if (this.window && !this.window.isDestroyed()) {
-      this.window.webContents.send(channel, data);
+      // preload.js listens on 'ble:' prefixed channels
+      this.window.webContents.send(`ble:${channel}`, data);
     }
   }
 
@@ -216,30 +218,36 @@ class BleManager {
   }
 
   async disconnect(reason = 'user') {
-    this._stopLiveData();
+    if (this._disconnecting) return; // prevent re-entrant disconnect
+    this._disconnecting = true;
+    try {
+      this._stopLiveData();
 
-    // Clear scan timeout
-    if (this._scanTimeout) {
-      clearTimeout(this._scanTimeout);
-      this._scanTimeout = null;
-    }
-
-    if (this.device) {
-      try {
-        await this.device.disconnectAsync();
-      } catch (e) {
-        console.warn('Disconnect error:', e);
+      // Clear scan timeout
+      if (this._scanTimeout) {
+        clearTimeout(this._scanTimeout);
+        this._scanTimeout = null;
       }
+
+      if (this.device) {
+        try {
+          await this.device.disconnectAsync();
+        } catch (e) {
+          console.warn('Disconnect error:', e);
+        }
+      }
+
+      this.device = null;
+      this.connected = false;
+      this._lastLiveData = null;
+      this._lastSettings = null;
+      this.settingsCharacteristics = [];
+      this.bulkDataCharacteristic = null;
+
+      this._emit('connectionChange', { status: 'disconnected', reason });
+    } finally {
+      this._disconnecting = false;
     }
-
-    this.device = null;
-    this.connected = false;
-    this._lastLiveData = null;
-    this._lastSettings = null;
-    this.settingsCharacteristics = [];
-    this.bulkDataCharacteristic = null;
-
-    this._emit('connectionChange', { status: 'disconnected', reason });
   }
 
   async _loadSettings() {

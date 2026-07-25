@@ -29,7 +29,7 @@ class PinecilProtocol {
       this.bulkDataUUID = SERVICES.BULK_DATA_V221;
       this.settingsMap = SETTINGS_V221;
       this.bulkDataMap = BULK_DATA_V221;
-      return '2.21+';
+      return 'v2.21'; // match PWA format
     }
     if (serviceUUIDs.includes(SERVICES.SETTINGS_V220)) {
       this.version = 'v220';
@@ -37,7 +37,7 @@ class PinecilProtocol {
       this.bulkDataUUID = SERVICES.BULK_DATA_V220;
       this.settingsMap = SETTINGS_V220;
       this.bulkDataMap = BULK_DATA_V220;
-      return '2.20';
+      return 'v2.20'; // match PWA format
     }
     return null;
   }

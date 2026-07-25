@@ -12,12 +12,11 @@ import {
 
 // Timeout wrapper — prevents Web BLE calls from hanging indefinitely
 function withTimeout(promise, ms, label = 'BLE operation') {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
-    ),
-  ]);
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 export class WebBleAdapter {
@@ -134,6 +133,11 @@ export class WebBleAdapter {
         this.#bulkDataChar.removeEventListener('characteristicvaluechanged', this.#bulkDataChar._pwaHandler);
         this.#bulkDataChar._pwaHandler = null;
       }
+
+      // Reset stale characteristic references from previous connection
+      this.#bulkDataChar = null;
+      this.#settingsChars = {};
+      this.#saveChar = null;
 
       // Disconnect existing GATT connection if any
       if (this.#device?.gatt?.connected) {

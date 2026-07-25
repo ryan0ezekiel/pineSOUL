@@ -81,29 +81,7 @@ export const LIVE_DATA_FIELDS = [
   'Watts',          // Current power draw in watts
 ];
 
-// ─── Operating Modes ─────────────────────────────────────────────────
-export const OPERATING_MODES = {
-  0: 'Standby',
-  1: 'Soldering',
-  2: 'Boost',
-  3: 'Sleep',
-};
-
-export const OPERATING_MODE_COLORS = {
-  0: '#34d399', // ready green
-  1: '#ff6b35', // heat orange
-  2: '#f59e0b', // boost amber
-  3: '#818cf8', // sleep purple
-};
-
-// ─── Temperature Limits ──────────────────────────────────────────────
-export const TEMP_LIMITS = {
-  SetTemperature:    { C: [10, 450], F: [50, 850] },
-  SleepTemperature:  { C: [10, 300], F: [50, 570] },
-  BoostTemperature:  { C: [250, 450], F: [480, 850] },
-};
-
-// ─── Setting Value Limits ────────────────────────────────────────────
+// ─── Setting Value Limits ────────────────────────────────────
 export const VALUE_LIMITS = {
   // BLE protocol sends temps in 0.1°C (e.g. 100=10°C, 4500=450°C)
   SetTemperature:        [100, 4500],   // 10–450°C
@@ -148,8 +126,8 @@ export const SETTING_META = {
   SetTemperature:      { label: 'Soldering Temp',     unit: '°',    group: 'soldering' },
   BoostTemperature:    { label: 'Boost Temp',         unit: '°',    group: 'soldering' },
   SleepTemperature:    { label: 'Sleep Temp',         unit: '°',    group: 'sleep' },
-  SleepTimeout:        { label: 'Sleep Timeout',      unit: 's',    group: 'sleep',     format: v => v === 0 ? 'Off' : v < 6 ? `${v * 15}s` : `${v - 5}m` },
-  ShutdownTimeout:     { label: 'Shutdown Timer',     unit: 'min',  group: 'sleep' },
+  SleepTimeout:        { label: 'Sleep Timeout',      unit: 's',    group: 'sleep',     format: v => { if (v === 0) return 'Off'; if (v <= 5) { const sec = v * 15; const m = Math.floor(sec / 60); const s = sec % 60; if (m > 0 && s > 0) return `${m}m ${s}s`; if (m > 0) return `${m}m`; return `${sec}s`; } return `${v - 5}m`; } },
+  ShutdownTimeout:     { label: 'Shutdown Timer',     unit: 'min',  group: 'sleep',     format: v => v === 0 ? 'Off' : `${v} min` },
   AutoStart:           { label: 'Start-up',           unit: '',     group: 'soldering', format: v => ['Off', 'Heat', 'Sleep', 'Standby'][v] || 'Off' },
   MotionSensitivity:   { label: 'Motion Sensitivity', unit: '',     group: 'device',    format: v => v === 0 ? 'Off' : v },
   LockingMode:         { label: 'Button Lock',        unit: '',     group: 'device',    format: v => ['Disable', 'Boost Only', 'Full'][v] || 'Disable' },

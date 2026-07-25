@@ -82,7 +82,9 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
     const isTemp = meta.unit === '°';
     const step = isTemp && (limits[1] - limits[0]) > 50 ? 10 : 1;
     // BLE sends temps in 0.1°C; display as °C for temperature settings
-    const displayValue = isTemp ? Math.round((value ?? 0) / 10) : (value ?? 0);
+    const displayValue = meta.format
+      ? meta.format(value ?? 0)
+      : isTemp ? Math.round((value ?? 0) / 10) : (value ?? 0);
     const displayMin = isTemp ? Math.round(limits[0] / 10) : limits[0];
     const displayMax = isTemp ? Math.round(limits[1] / 10) : limits[1];
     return (
@@ -101,7 +103,7 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
           </button>
           <div className="w-14 text-center text-sm font-mono text-iron-200 tabular-nums">
             {displayValue}
-            <span className="text-iron-500 text-[10px] ml-0.5">{meta.unit}</span>
+            {!meta.format && <span className="text-iron-500 text-[10px] ml-0.5">{meta.unit}</span>}
           </div>
           <button
             onClick={() => onChange(name, Math.min(limits[1], (value ?? 0) + step))}
