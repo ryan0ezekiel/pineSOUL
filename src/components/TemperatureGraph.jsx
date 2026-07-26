@@ -106,7 +106,7 @@ export default memo(function TemperatureGraph({
       const dataMax = allTemps.length > 0
         ? allTemps.reduce((a, b) => Math.max(a, b), 0)
         : 0;
-      const { ticks: yTickValues, max: computedMax } = generateTicks(dataMax || 4500);
+      const { ticks: yTickValues, max: computedMax } = generateTicks(dataMax || 450);
       const finalMax = Math.max(computedMax, dataMax, 1);
       const yScale = (v) => pTop + plotH - (v / finalMax) * plotH;
 

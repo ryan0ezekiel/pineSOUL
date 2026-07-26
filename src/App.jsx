@@ -25,8 +25,8 @@ const DEFAULT_HOTKEY_CONFIG = {
   tempUp: '=',
   tempDown: '-',
   toggleMode: 'F2',
-  tempStep: 10, // 0.1°C: 10 = 1°C step
-  toggleTemp: 3200, // 0.1°C: 3200 = 320°C
+  tempStep: 10, // °C step (raw IS °C)
+  toggleTemp: 320, // °C (raw IS °C)
 };
 
 const DEFAULT_APP_CONFIG = {

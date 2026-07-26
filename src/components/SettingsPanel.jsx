@@ -93,10 +93,10 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
     // Smart step: temperature settings (unit °) use 10 (=1°C), others use 1
     const isTemp = meta.unit === '°';
     const step = isTemp && (limits[1] - limits[0]) > 50 ? 10 : 1;
-    // BLE sends temps in 0.1°C; display as °C for temperature settings
+    // Raw settings are in °C directly (confirmed by PineSAM reference)
     const displayValue = meta.format
     ? meta.format(value ?? 0)
-    : isTemp ? Math.round((value ?? 0) / 10) : (value ?? 0);
+    : isTemp ? (value ?? 0) : (value ?? 0);
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
         <div className="flex items-center gap-2">
@@ -246,19 +246,19 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
                   </div>
                   <HotkeyRow
                     label="Temperature Up"
-                    description={`Increases temperature by ${Math.round((hotkeyConfig?.tempStep || 10) / 10)}° step`}
+                    description={`Increases temperature by ${hotkeyConfig?.tempStep || 10}° step`}
                     value={hotkeyConfig?.tempUp}
                     onChange={(key) => onUpdateHotkeyConfig({ tempUp: key })}
                   />
                   <HotkeyRow
                     label="Temperature Down"
-                    description={`Decreases temperature by ${Math.round((hotkeyConfig?.tempStep || 10) / 10)}° step`}
+                    description={`Decreases temperature by ${hotkeyConfig?.tempStep || 10}° step`}
                     value={hotkeyConfig?.tempDown}
                     onChange={(key) => onUpdateHotkeyConfig({ tempDown: key })}
                   />
                   <HotkeyRow
                     label="Toggle Hot/Cold"
-                    description={`Toggles between heating to ${Math.round((hotkeyConfig?.toggleTemp || 3200) / 10)}° or cooldown`}
+                    description={`Toggles between heating to ${hotkeyConfig?.toggleTemp || 320}° or cooldown`}
                     value={hotkeyConfig?.toggleMode}
                     onChange={(key) => onUpdateHotkeyConfig({ toggleMode: key })}
                   />
@@ -269,15 +269,15 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
                     </div>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => onUpdateHotkeyConfig({ tempStep: Math.max(10, (hotkeyConfig?.tempStep || 10) - 50) })}
+                        onClick={() => onUpdateHotkeyConfig({ tempStep: Math.max(5, (hotkeyConfig?.tempStep || 10) - 5) })}
                         className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400"
                         aria-label="Decrease temperature step"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className="w-10 text-center text-sm font-mono text-iron-200 tabular-nums">{Math.round((hotkeyConfig?.tempStep || 10) / 10)}</span>
+                      <span className="w-10 text-center text-sm font-mono text-iron-200 tabular-nums">{hotkeyConfig?.tempStep || 10}</span>
                       <button
-                        onClick={() => onUpdateHotkeyConfig({ tempStep: Math.min(1000, (hotkeyConfig?.tempStep || 10) + 50) })}
+                        onClick={() => onUpdateHotkeyConfig({ tempStep: Math.min(50, (hotkeyConfig?.tempStep || 10) + 5) })}
                         className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400"
                         aria-label="Increase temperature step"
                       >
@@ -292,15 +292,15 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
                     </div>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => onUpdateHotkeyConfig({ toggleTemp: Math.max(500, (hotkeyConfig?.toggleTemp || 3200) - 100) })}
+                        onClick={() => onUpdateHotkeyConfig({ toggleTemp: Math.max(50, (hotkeyConfig?.toggleTemp || 320) - 10) })}
                         className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400"
                         aria-label="Decrease toggle temperature"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className="w-10 text-center text-sm font-mono text-iron-200 tabular-nums">{Math.round((hotkeyConfig?.toggleTemp || 3200) / 10)}°</span>
+                      <span className="w-10 text-center text-sm font-mono text-iron-200 tabular-nums">{hotkeyConfig?.toggleTemp || 320}°</span>
                       <button
-                        onClick={() => onUpdateHotkeyConfig({ toggleTemp: Math.min(4500, (hotkeyConfig?.toggleTemp || 3200) + 100) })}
+                        onClick={() => onUpdateHotkeyConfig({ toggleTemp: Math.min(450, (hotkeyConfig?.toggleTemp || 320) + 10) })}
                         className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400"
                         aria-label="Increase toggle temperature"
                       >

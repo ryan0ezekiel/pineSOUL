@@ -9,18 +9,18 @@ const MODE_MAP = {
   3: { label: 'Sleep', color: '#818cf8', glow: 'glow-sleep', icon: 'moon' },
 };
 
-// BLE sends temps in 0.1°C (e.g. 3180 = 318°C, 4500 = 450°C)
+// Raw values: temps in °C, Voltage/HandleTemp/TipRes/Watts in ×10 units (PineSAM confirmed)
 const MOCK_LIVE_DATA = {
-  LiveTemp: 3180,     // 318°C
-  SetTemp: 3200,      // 320°C
+  LiveTemp: 318,      // 318°C (raw IS °C)
+  SetTemp: 320,       // 320°C (raw IS °C)
   Voltage: 198,
-  HandleTemp: 324,    // 32.4°C (handle is cooler)
+  HandleTemp: 324,    // 32.4°C (raw ×0.1)
   PWMLevel: 64,
   PowerSource: 3,
-  TipResistance: 840,   // 8.4Ω (centiohms)
+  TipResistance: 84,    // 8.4Ω (raw ×0.1)
   Uptime: 1847000,
   MovementTime: 42000,
-  MaxTipTempAbility: 4500, // 450°C
+  MaxTipTempAbility: 450, // 450°C (raw IS °C)
   uVoltsTip: 3120,
   HallSensor: 1,
   OperatingMode: 1,
@@ -28,9 +28,9 @@ const MOCK_LIVE_DATA = {
 };
 
 const MOCK_SETTINGS = {
-  SetTemperature: 3200,     // 320°C
-  BoostTemperature: 4000,   // 400°C
-  SleepTemperature: 1500,   // 150°C
+  SetTemperature: 320,      // 320°C (raw IS °C)
+  BoostTemperature: 400,    // 400°C (raw IS °C)
+  SleepTemperature: 150,    // 150°C (raw IS °C)
   SleepTimeout: 6,
   ShutdownTimeout: 60,
   AutoStart: 0,
@@ -63,8 +63,8 @@ const MOCK_SETTINGS = {
 };
 
 const DEFAULT_LIVE_DATA = {
-  LiveTemp: 250,       // 25°C (room temp)
-  SetTemp: 3200,       // 320°C
+  LiveTemp: 25,        // 25°C (room temp, raw IS °C)
+  SetTemp: 320,        // 320°C (raw IS °C)
   Voltage: 0,
   HandleTemp: 280,     // 28°C
   PWMLevel: 0,
@@ -72,7 +72,7 @@ const DEFAULT_LIVE_DATA = {
   TipResistance: 0,
   Uptime: 0,
   MovementTime: 0,
-  MaxTipTempAbility: 4500, // 450°C
+  MaxTipTempAbility: 450, // 450°C (raw IS °C)
   uVoltsTip: 0,
   HallSensor: 0,
   OperatingMode: 0,
@@ -99,7 +99,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const pendingSettings = useRef({});
   const historyRef = useRef([]);
   const listenersRef = useRef([]);
-  const liveDataRef = useRef({ SetTemp: 3200, MaxTipTempAbility: 4500, OperatingMode: 0, LiveTemp: 250 });
+  const liveDataRef = useRef({ SetTemp: 320, MaxTipTempAbility: 450, OperatingMode: 0, LiveTemp: 25 });
   const connectionRef = useRef('disconnected');
   const applySettingsRef = useRef(null);
 
@@ -132,13 +132,13 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     if (!mock) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      const baseTemp = 3100 + Math.sin(now / 5000) * 150; // 0.1°C
+      const baseTemp = 310 + Math.sin(now / 5000) * 15; // °C (raw IS °C)
       const noise = (Math.random() - 0.5) * 80;
       const liveTemp = Math.round(baseTemp + noise);
       const watts = Math.round(45 + Math.random() * 20);
       historyRef.current = [
         ...historyRef.current.slice(-(MAX_HISTORY - 1)),
-        { timestamp: now, liveTemp, setTemp: 3200, watts }
+        { timestamp: now, liveTemp, setTemp: 320, watts }
       ];
       setLiveData(prev => ({ ...prev, LiveTemp: liveTemp, Watts: watts }));
     }, pollingRate);
@@ -403,7 +403,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   // ─── Format helpers (memoized) ──────────────────────────
   const formatVoltage = useCallback((raw) => {
     if (raw == null || raw === 0) return '--';
-    return (raw / 100).toFixed(1);
+    return (raw / 10).toFixed(1);  // PineSAM ref: raw is 0.1V units
   }, []);
 
   const formatUptime = useCallback((ms) => {
@@ -427,7 +427,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
 
   const formatTipRes = useCallback((raw) => {
     if (!raw || raw === 0) return '--';
-    return (raw / 100).toFixed(1);
+    return (raw / 10).toFixed(1);  // PineSAM ref: raw is 0.1Ω units
   }, []);
 
   const formatPowerSource = useCallback((raw) => {
@@ -436,7 +436,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
 
   const formatTemp = useCallback((raw) => {
     if (raw == null) return '--';
-    const tempC = raw / 10; // BLE protocol sends 0.1°C units
+    const tempC = raw;  // PineSAM ref: raw IS °C for LiveTemp/SetTemp
     if (settings.TemperatureUnit === 1) {
       return Math.round(tempC * 9/5 + 32);
     }
@@ -452,8 +452,8 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const handleTempUp = useCallback((step) => {
     const stepVal = step || 10;
     const ld = liveDataRef.current;
-    const current = ld.SetTemp || 3200;
-    const newTemp = Math.min(current + stepVal, ld.MaxTipTempAbility || 4500);
+    const current = ld.SetTemp || 320;
+    const newTemp = Math.min(current + stepVal, ld.MaxTipTempAbility || 450);
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
     if (!mock && api) {
       api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
@@ -464,8 +464,8 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const handleTempDown = useCallback((step) => {
     const stepVal = step || 10;
     const ld = liveDataRef.current;
-    const current = ld.SetTemp || 3200;
-    const newTemp = Math.max(current - stepVal, 100); // min 100 = 10°C
+    const current = ld.SetTemp || 320;
+    const newTemp = Math.max(current - stepVal, 10); // min 10°C
     setLiveData(prev => ({ ...prev, SetTemp: newTemp }));
     if (!mock && api) {
       api.bleSetSetting('SetTemperature', newTemp).catch(() => {});
@@ -475,11 +475,11 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
 
   const handleToggleMode = useCallback((targetTemp) => {
     const ld = liveDataRef.current;
-    // 0.1°C: default target 3200=320°C, cooldown threshold 500=50°C, cooldown target 250=25°C
-    const toggleTarget = targetTemp || 3200;
-    if (ld.OperatingMode === 1 && ld.LiveTemp > 500) {
-      setLiveData(prev => ({ ...prev, SetTemp: 250 }));
-      if (!mock && api) api.bleSetSetting('SetTemperature', 250).catch(() => {});
+    // Raw °C: default target 320°C, cooldown threshold 50°C, cooldown target 25°C
+    const toggleTarget = targetTemp || 320;
+    if (ld.OperatingMode === 1 && ld.LiveTemp > 50) {
+      setLiveData(prev => ({ ...prev, SetTemp: 25 }));
+      if (!mock && api) api.bleSetSetting('SetTemperature', 25).catch(() => {});
       addToast('❄️ Cooling down...', 'info');
     } else {
       setLiveData(prev => ({ ...prev, SetTemp: toggleTarget }));

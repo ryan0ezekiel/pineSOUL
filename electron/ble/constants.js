@@ -74,13 +74,13 @@ const BULK_DATA_V220 = { ...BULK_DATA_V221 };
 // ─── Live Data Fields ────────────────────────────────────────────────
 // 14 × uint32 little-endian values from BulkData characteristic
 const LIVE_DATA_FIELDS = [
-  'LiveTemp',       // Current tip temperature (0.1°C or °F units)
-  'SetTemp',        // Target temperature
-  'Voltage',        // Input voltage (10mV units, so 200 = 2.00V → actually mV * 10)
-  'HandleTemp',     // Handle temperature
+  'LiveTemp',       // Current tip temperature in °C (raw value, PineSAM confirmed)
+  'SetTemp',        // Target temperature in °C (raw value)
+  'Voltage',        // Input voltage in 0.1V units (divide by 10 for volts)
+  'HandleTemp',     // Handle temperature in 0.1°C (divide by 10)
   'PWMLevel',       // PWM duty cycle (0-100)
   'PowerSource',    // Power source type (0=USB, 1=DC, 2=QC, 3=PD)
-  'TipResistance',  // Tip resistance in milliohms (80 = 8.0Ω)
+  'TipResistance',  // Tip resistance in 0.1Ω units (divide by 10)
   'Uptime',         // Uptime in milliseconds
   'MovementTime',   // Time since last movement (ms)
   'MaxTipTempAbility', // Maximum achievable tip temperature
@@ -92,9 +92,9 @@ const LIVE_DATA_FIELDS = [
 
 // ─── Setting Value Limits ────────────────────────────────────────────
 const VALUE_LIMITS = {
-  // BLE protocol sends temps in 0.1°C (e.g. 100=10°C, 4500=450°C)
-  SetTemperature:        [100, 4500],   // 10–450°C
-  SleepTemperature:      [100, 3000],   // 10–300°C
+  // Raw values are in °C directly (PineSAM reference confirmed)
+  SetTemperature:        [10, 450],      // 10–450°C
+  SleepTemperature:      [10, 300],      // 10–300°C
   SleepTimeout:          [0, 15],
   DCInCutoff:            [0, 4],
   MinVolCell:            [24, 38],
@@ -115,12 +115,12 @@ const VALUE_LIMITS = {
   PowerPulseWait:        [1, 9],
   PowerPulseDuration:    [1, 9],
   VoltageCalibration:    [360, 900],
-  BoostTemperature:      [2500, 4500],  // 250–450°C
+  BoostTemperature:      [250, 450],     // 250–450°C
   CalibrationOffset:     [100, 2500],
   PowerLimit:            [0, 220],
   ReverseButtonTempChange: [0, 1],
-  TempChangeLongStep:    [10, 900],     // 1–90°C in 0.1°C steps
-  TempChangeShortStep:   [10, 500],     // 1–50°C in 0.1°C steps
+  TempChangeLongStep:    [1, 90],        // 1–90°C step
+  TempChangeShortStep:   [1, 50],        // 1–50°C step
   HallEffectSensitivity: [0, 9],
   Brightness:            [0, 101],
   LOGOTime:              [0, 5],
