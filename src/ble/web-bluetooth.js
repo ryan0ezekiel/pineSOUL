@@ -173,12 +173,13 @@ export class WebBleAdapter {
         SERVICES.BULK_DATA_V220,
         SERVICES.BULK_DATA_V221,
       ];
-      const services = await withTimeout(
+      const serviceResults = await withTimeout(
         Promise.all(knownServiceUUIDs.map(uuid =>
           this.#server.getPrimaryServices(uuid).catch(() => null)
-        ).then(results => results.filter(Boolean))),
+        )),
         10000, 'Service discovery'
       );
+      const services = serviceResults.filter(Boolean).flat();
       const serviceUUIDs = services.map(s => s.uuid);
 
       this.#version = detectVersion(serviceUUIDs);
