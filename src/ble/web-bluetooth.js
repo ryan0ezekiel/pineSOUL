@@ -20,6 +20,20 @@ function withTimeout(promise, ms, label = 'BLE operation') {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+// Retry wrapper — Android Chrome may not have GATT services ready immediately after connect.
+// This retries getPrimaryService() with a short delay between attempts.
+async function getServiceWithRetry(server, uuid, label, retries = 3, delayMs = 500) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await withTimeout(server.getPrimaryService(uuid), 5000, label);
+    } catch (e) {
+      if (attempt === retries) throw e;
+      console.warn(`${label} attempt ${attempt}/${retries} failed, retrying in ${delayMs}ms...`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+}
+
 export class WebBleAdapter {
   #device = null;
   #server = null;
@@ -168,26 +182,27 @@ export class WebBleAdapter {
       // Detect firmware version by trying to get each service directly
       // Does NOT use getPrimaryServices() — it fails on Android Chrome with "not supported"
       // Instead, try each known service UUID with server.getPrimaryService() (singular)
+      // Uses retry wrapper because Android Chrome may not have GATT ready immediately
       let settingsService = null;
       let bulkService = null;
 
       // Try v2.21 first, fall back to v2.20
       try {
-        settingsService = await withTimeout(
-          this.#server.getPrimaryService(SERVICES.SETTINGS_V221), 5000, 'Settings v2.21'
+        settingsService = await getServiceWithRetry(
+          this.#server, SERVICES.SETTINGS_V221, 'Settings v2.21'
         );
-        bulkService = await withTimeout(
-          this.#server.getPrimaryService(SERVICES.BULK_DATA_V221), 5000, 'Bulk v2.21'
+        bulkService = await getServiceWithRetry(
+          this.#server, SERVICES.BULK_DATA_V221, 'Bulk v2.21'
         );
         this.#version = 'v2.21';
       } catch {
         // Try v2.20
         try {
-          settingsService = await withTimeout(
-            this.#server.getPrimaryService(SERVICES.SETTINGS_V220), 5000, 'Settings v2.20'
+          settingsService = await getServiceWithRetry(
+            this.#server, SERVICES.SETTINGS_V220, 'Settings v2.20'
           );
-          bulkService = await withTimeout(
-            this.#server.getPrimaryService(SERVICES.BULK_DATA_V220), 5000, 'Bulk v2.20'
+          bulkService = await getServiceWithRetry(
+            this.#server, SERVICES.BULK_DATA_V220, 'Bulk v2.20'
           );
           this.#version = 'v2.20';
         } catch {
