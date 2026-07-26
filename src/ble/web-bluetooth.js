@@ -8,7 +8,7 @@ import {
 import { VALUE_LIMITS } from '../constants.js';
 import {
   parseLiveData, parseSetting, encodeSetting,
-  detectVersion, getSettingsMap, getBulkMap,
+  getSettingsMap, getBulkMap,
 } from './protocol.js';
 
 // Timeout wrapper — prevents Web BLE calls from hanging indefinitely
@@ -75,15 +75,16 @@ export class WebBleAdapter {
       }
 
       // Show browser-native BLE device picker
-      // acceptAllDevices: true shows all nearby BLE devices (Pinecil has no standard filter service)
+      // Use namePrefix filter for Android compatibility — acceptAllDevices fails on some Android devices
+      const allServices = [
+        SERVICES.SETTINGS_V220,
+        SERVICES.SETTINGS_V221,
+        SERVICES.BULK_DATA_V220,
+        SERVICES.BULK_DATA_V221,
+      ];
       const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [
-          SERVICES.SETTINGS_V220,
-          SERVICES.SETTINGS_V221,
-          SERVICES.BULK_DATA_V220,
-          SERVICES.BULK_DATA_V221,
-        ],
+        filters: [{ namePrefix: 'Pinecil' }],
+        optionalServices: allServices,
       });
 
       this.#device = device;
@@ -164,27 +165,34 @@ export class WebBleAdapter {
         this.#device.gatt.connect(), 10000, 'GATT connect'
       );
 
-      // Detect firmware version from available services (timeout: 10s)
-      // Pass known UUIDs explicitly — Android Chrome fails with "not supported"
-      // when getPrimaryServices() is called without arguments
-      const knownServiceUUIDs = [
-        SERVICES.SETTINGS_V220,
-        SERVICES.SETTINGS_V221,
-        SERVICES.BULK_DATA_V220,
-        SERVICES.BULK_DATA_V221,
-      ];
-      const serviceResults = await withTimeout(
-        Promise.all(knownServiceUUIDs.map(uuid =>
-          this.#server.getPrimaryServices(uuid).catch(() => null)
-        )),
-        10000, 'Service discovery'
-      );
-      const services = serviceResults.filter(Boolean).flat();
-      const serviceUUIDs = services.map(s => s.uuid);
+      // Detect firmware version by trying to get each service directly
+      // Does NOT use getPrimaryServices() — it fails on Android Chrome with "not supported"
+      // Instead, try each known service UUID with server.getPrimaryService() (singular)
+      let settingsService = null;
+      let bulkService = null;
 
-      this.#version = detectVersion(serviceUUIDs);
-      if (!this.#version) {
-        throw new Error('Unsupported Pinecil firmware. Please update to v2.20+.');
+      // Try v2.21 first, fall back to v2.20
+      try {
+        settingsService = await withTimeout(
+          this.#server.getPrimaryService(SERVICES.SETTINGS_V221), 5000, 'Settings v2.21'
+        );
+        bulkService = await withTimeout(
+          this.#server.getPrimaryService(SERVICES.BULK_DATA_V221), 5000, 'Bulk v2.21'
+        );
+        this.#version = 'v2.21';
+      } catch {
+        // Try v2.20
+        try {
+          settingsService = await withTimeout(
+            this.#server.getPrimaryService(SERVICES.SETTINGS_V220), 5000, 'Settings v2.20'
+          );
+          bulkService = await withTimeout(
+            this.#server.getPrimaryService(SERVICES.BULK_DATA_V220), 5000, 'Bulk v2.20'
+          );
+          this.#version = 'v2.20';
+        } catch {
+          throw new Error('Unsupported Pinecil firmware. Please update to v2.20+.');
+        }
       }
 
       this.#settingsMap = getSettingsMap(this.#version);
