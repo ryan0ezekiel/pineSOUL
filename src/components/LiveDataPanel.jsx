@@ -32,6 +32,7 @@ export default memo(function LiveDataPanel({
   formatUptime,
   formatHandleTemp,
   formatTipRes,
+  formatWatts,
   formatPowerSource,
 }) {
   return (
@@ -47,7 +48,7 @@ export default memo(function LiveDataPanel({
       <StatCard
         icon={Gauge}
         label="Power"
-        value={liveData?.Watts ?? 0}
+        value={formatWatts(liveData?.Watts ?? 0)}
         unit="W"
         color="text-soul-400"
         delay={0.1}

@@ -247,6 +247,7 @@ export default function App() {
                           currentTempPercent={p.currentTempPercent}
                           setTempPercent={p.setTempPercent}
                           formatTemp={p.formatTemp}
+                          formatWatts={p.formatWatts}
                           displayUnit={p.displayUnit}
                         />
                       </div>
@@ -262,6 +263,7 @@ export default function App() {
                         formatUptime={p.formatUptime}
                         formatHandleTemp={p.formatHandleTemp}
                         formatTipRes={p.formatTipRes}
+                        formatWatts={p.formatWatts}
                         formatPowerSource={p.formatPowerSource}
                       />
                     </div>

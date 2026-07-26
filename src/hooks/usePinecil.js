@@ -24,7 +24,7 @@ const MOCK_LIVE_DATA = {
   uVoltsTip: 3120,
   HallSensor: 1,
   OperatingMode: 1,
-  Watts: 65,
+  Watts: 650,         // 65W (raw ×0.1)
 };
 
 const MOCK_SETTINGS = {
@@ -135,7 +135,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       const baseTemp = 310 + Math.sin(now / 5000) * 15; // °C (raw IS °C)
       const noise = (Math.random() - 0.5) * 80;
       const liveTemp = Math.round(baseTemp + noise);
-      const watts = Math.round(45 + Math.random() * 20);
+      const watts = Math.round(450 + Math.random() * 200); // raw ×0.1 (45-65W)
       historyRef.current = [
         ...historyRef.current.slice(-(MAX_HISTORY - 1)),
         { timestamp: now, liveTemp, setTemp: 320, watts }
@@ -430,6 +430,11 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     return (raw / 10).toFixed(1);  // PineSAM ref: raw is 0.1Ω units
   }, []);
 
+  const formatWatts = useCallback((raw) => {
+    if (raw == null || raw === 0) return '--';
+    return (raw / 10).toFixed(1);  // PineSAM ref: raw is 0.1W units
+  }, []);
+
   const formatPowerSource = useCallback((raw) => {
     return ['USB-C', 'DC Jack', 'QC', 'PD'][raw] || 'Unknown';
   }, []);
@@ -542,6 +547,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     formatUptime,
     formatHandleTemp,
     formatTipRes,
+    formatWatts,
     formatPowerSource,
   };
 }

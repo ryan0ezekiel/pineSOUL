@@ -6,7 +6,7 @@ const RADIUS = (RING_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const MAX_TEMP = 450;
 
-export default memo(function TemperatureDial({ liveData, mode, currentTempPercent, setTempPercent, formatTemp, displayUnit }) {
+export default memo(function TemperatureDial({ liveData, mode, currentTempPercent, setTempPercent, formatTemp, formatWatts, displayUnit }) {
   const currentTemp = liveData?.LiveTemp || 0;
   const setTemp = liveData?.SetTemp || 0;
 
@@ -148,7 +148,7 @@ export default memo(function TemperatureDial({ liveData, mode, currentTempPercen
         </div>
 
         <div className="mt-1 text-[11px] text-iron-500 tabular-nums font-mono">
-          {liveData?.Watts || 0}W
+          {formatWatts ? formatWatts(liveData?.Watts ?? 0) : '0'}W
         </div>
       </div>
     </div>

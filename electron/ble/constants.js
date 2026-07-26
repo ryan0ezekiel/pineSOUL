@@ -87,7 +87,7 @@ const LIVE_DATA_FIELDS = [
   'uVoltsTip',      // Microvolts across the tip
   'HallSensor',     // Hall sensor reading
   'OperatingMode',  // 0=Standby, 1=Soldering, 2=Boost, 3=Sleep
-  'Watts',          // Current power draw in watts
+  'Watts',          // Current power draw in 0.1W units (divide by 10)
 ];
 
 // ─── Setting Value Limits ────────────────────────────────────────────
