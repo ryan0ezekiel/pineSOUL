@@ -165,8 +165,19 @@ export class WebBleAdapter {
       );
 
       // Detect firmware version from available services (timeout: 10s)
+      // Pass known UUIDs explicitly — Android Chrome fails with "not supported"
+      // when getPrimaryServices() is called without arguments
+      const knownServiceUUIDs = [
+        SERVICES.SETTINGS_V220,
+        SERVICES.SETTINGS_V221,
+        SERVICES.BULK_DATA_V220,
+        SERVICES.BULK_DATA_V221,
+      ];
       const services = await withTimeout(
-        this.#server.getPrimaryServices(), 10000, 'Service discovery'
+        Promise.all(knownServiceUUIDs.map(uuid =>
+          this.#server.getPrimaryServices(uuid).catch(() => null)
+        ).then(results => results.filter(Boolean))),
+        10000, 'Service discovery'
       );
       const serviceUUIDs = services.map(s => s.uuid);
 
