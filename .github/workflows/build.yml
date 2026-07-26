@@ -11,12 +11,13 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             platform: linux
             build_cmd: dist:linux
-          - os: windows-latest
+          - os: windows-2022
             platform: win
             build_cmd: dist:win
           - os: macos-latest
