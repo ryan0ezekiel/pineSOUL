@@ -27,6 +27,11 @@ class BleManager {
     this._lastSettings = null;
     this._pollingInterval = options.pollingInterval || 500;
     this._disconnecting = false; // guard against re-entrant disconnect
+    this._lastSettingsRead = 0;
+    this._SETTINGS_THROTTLE_MS = 2000;
+    this._autoReconnectEnabled = false;
+    this._autoReconnectTimer = null;
+    this._settingsWriteMutex = false;
     this._boundHandlers = null; // stored for cleanup on destroy
     // Bind noble events (can be re-bound via reinitialize())
     this.#bindNobleEvents();
@@ -50,6 +55,11 @@ class BleManager {
 
   /** Remove noble event listeners — call on app shutdown */
   async destroy() {
+    // Cancel any pending auto-reconnect
+    if (this._autoReconnectTimer) {
+      clearTimeout(this._autoReconnectTimer);
+      this._autoReconnectTimer = null;
+    }
     // Disconnect any active peripheral first (BUG #5: macOS stays alive after close)
     await this.disconnect('window_closed');
     if (noble && this._boundHandlers) {
@@ -218,6 +228,8 @@ class BleManager {
           deviceInfo: this.deviceInfo,
         });
 
+        this._autoReconnectEnabled = true;
+
         // Start live data polling
         this._startLiveData();
 
@@ -276,13 +288,51 @@ class BleManager {
       }
 
       this._emit('connectionChange', { status: 'disconnected', reason });
+
+      // Auto-reconnect after unexpected disconnect
+      if (this._autoReconnectEnabled && reason !== 'user' && reason !== 'window_closed') {
+        const lastAddress = this.deviceInfo?.address;
+        if (lastAddress) {
+          if (this._autoReconnectTimer) clearTimeout(this._autoReconnectTimer);
+          this._autoReconnectTimer = setTimeout(async () => {
+            if (!this._autoReconnectEnabled) return;
+            try {
+              console.debug('[pineSOUL] Auto-reconnecting to', lastAddress);
+              await this.connect(lastAddress);
+            } catch (e) {
+              console.debug('[pineSOUL] Auto-reconnect failed:', e.message);
+            }
+          }, 3000);
+        }
+      }
     } finally {
       this._disconnecting = false;
     }
   }
 
+  // ── Auto-reconnect ───────────────────────────────────────────────
+  enableAutoReconnect() {
+    this._autoReconnectEnabled = true;
+  }
+
+  disableAutoReconnect() {
+    this._autoReconnectEnabled = false;
+    if (this._autoReconnectTimer) {
+      clearTimeout(this._autoReconnectTimer);
+      this._autoReconnectTimer = null;
+    }
+  }
+
   async _loadSettings() {
     if (!this.connected) return;
+
+    // Throttle: don't re-read settings too frequently
+    const now = Date.now();
+    if (now - this._lastSettingsRead < this._SETTINGS_THROTTLE_MS) {
+      console.debug('[pineSOUL] Settings read throttled');
+      return;
+    }
+    this._lastSettingsRead = now;
 
     const settings = {};
 
@@ -349,32 +399,38 @@ class BleManager {
 
   async setSetting(name, value) {
     if (!this.connected) throw new Error('Not connected');
+    if (this._settingsWriteMutex) throw new Error('Settings write busy — please retry');
+    this._settingsWriteMutex = true;
 
-    const uuid = this.protocol.getSettingUUID(name);
-    if (!uuid) throw new Error(`Unknown setting: ${name}`);
+    try {
+      const uuid = this.protocol.getSettingUUID(name);
+      if (!uuid) throw new Error(`Unknown setting: ${name}`);
 
-    // Validate value is numeric before range check
-    const num = Number(value);
-    if (!Number.isFinite(num)) {
-      throw new Error(`Invalid value for ${name}: not a number`);
-    }
-
-    const limits = VALUE_LIMITS[name];
-    if (limits) {
-      const [min, max] = limits;
-      if (num < min || num > max) {
-        throw new Error(`Value ${num} out of range for ${name}: [${min}, ${max}]`);
+      // Validate value is numeric before range check
+      const num = Number(value);
+      if (!Number.isFinite(num)) {
+        throw new Error(`Invalid value for ${name}: not a number`);
       }
+
+      const limits = VALUE_LIMITS[name];
+      if (limits) {
+        const [min, max] = limits;
+        if (num < min || num > max) {
+          throw new Error(`Value ${num} out of range for ${name}: [${min}, ${max}]`);
+        }
+      }
+
+      const char = this.settingsCharacteristics.find(c => c.uuid === uuid);
+      if (!char) throw new Error(`Setting characteristic not found: ${name}`);
+
+      const encoded = this.protocol.encodeSetting(num);
+      if (!encoded) throw new Error(`Failed to encode value for ${name}`);
+      await char.writeAsync(encoded, false);
+
+      return true;
+    } finally {
+      this._settingsWriteMutex = false;
     }
-
-    const char = this.settingsCharacteristics.find(c => c.uuid === uuid);
-    if (!char) throw new Error(`Setting characteristic not found: ${name}`);
-
-    const encoded = this.protocol.encodeSetting(num);
-    if (!encoded) throw new Error(`Failed to encode value for ${name}`);
-    await char.writeAsync(encoded, false);
-
-    return true;
   }
 
   async saveToFlash() {

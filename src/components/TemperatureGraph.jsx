@@ -54,10 +54,15 @@ export default memo(function TemperatureGraph({
   windowSeconds = 300, // 5 minutes
   formatTemp = (v) => Math.round(v),
   displayUnit = '°C',
+  showWatts = false,
+  showVoltage = false,
+  onToggleWatts,
 }) {
   const svgId = useId();
   const containerRef = useRef(null);
   const [height, setHeight] = useState(200);
+  const [showPower, setShowPower] = useState(false);
+  const [showVolts, setShowVolts] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -74,6 +79,10 @@ export default memo(function TemperatureGraph({
     pathData,
     areaData,
     targetPathData,
+    wattsPathD,
+    voltagePathD,
+    wattsMax,
+    voltageMax,
     xLabels,
     yTicks,
     yMax,
@@ -127,6 +136,29 @@ export default memo(function TemperatureGraph({
       const tempPathD = smoothPath(tempPoints);
       const targetPathD = smoothPath(setPoints);
 
+      // ── Secondary data points for power overlay ─────────────────────────
+      const wattsData = sorted.filter(d => d.watts != null);
+      const voltageData = sorted.filter(d => d.voltage != null);
+
+      // Secondary Y scales for watts and voltage
+      const wattsMax = wattsData.length > 0
+        ? Math.max(...wattsData.map(d => d.watts), 1)
+        : 100;
+      const voltageMax = voltageData.length > 0
+        ? Math.max(...voltageData.map(d => d.voltage), 1)
+        : 25;
+
+      const wattsYScale = (v) => pTop + plotH - (v / (wattsMax || 100)) * plotH;
+      const voltageYScale = (v) => pTop + plotH - (v / (voltageMax || 25)) * plotH;
+
+      const wattsPoints = wattsData
+        .map(d => ({ x: xScale(d.timestamp), y: wattsYScale(d.watts) }));
+      const voltagePoints = voltageData
+        .map(d => ({ x: xScale(d.timestamp), y: voltageYScale(d.voltage) }));
+
+      const wattsPathD = smoothPath(wattsPoints);
+      const voltagePathD = smoothPath(voltagePoints);
+
       // ── Area fill ──────────────────────────────────────────────────────
       let areaD = '';
       if (tempPoints.length >= 2) {
@@ -158,6 +190,10 @@ export default memo(function TemperatureGraph({
         pathData: tempPathD,
         areaData: areaD,
         targetPathData: targetPathD,
+        wattsPathD,
+        voltagePathD,
+        wattsMax,
+        voltageMax,
         xLabels: labelIntervals,
         yTicks: yGridLines,
         yMax: finalMax,
@@ -293,6 +329,37 @@ export default memo(function TemperatureGraph({
             filter={`url(#${svgId}-tempGlow)`}
           />
         )}
+        {/* ── Watts overlay line (blue) ──────────────────────────────── */}
+        {showPower && wattsPathD && (
+          <path d={wattsPathD} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeOpacity={0.7} strokeLinecap="round" />
+        )}
+        {/* ── Voltage overlay line (green) ──────────────────────────── */}
+        {showVolts && voltagePathD && (
+          <path d={voltagePathD} fill="none" stroke="#10b981" strokeWidth={1.5} strokeOpacity={0.7} strokeLinecap="round" />
+        )}
+
+        {/* ── Overlay toggle buttons ──────────────────────────────── */}
+        <g transform={`translate(${left + 4}, ${top + 2})`}>
+          <g
+            onClick={() => setShowPower(p => !p)}
+            style={{ cursor: 'pointer' }}
+          >
+            <rect x={0} y={0} width={48} height={16} rx={4} fill={showPower ? '#3b82f6' : '#1e293b'} fillOpacity={0.8} />
+            <text x={24} y={12} textAnchor="middle" fill={showPower ? '#fff' : '#94a3b8'} fontSize="9" fontFamily="JetBrains Mono, monospace">
+              ⚡ W
+            </text>
+          </g>
+          <g
+            onClick={() => setShowVolts(v => !v)}
+            style={{ cursor: 'pointer' }}
+            transform="translate(56, 0)"
+          >
+            <rect x={0} y={0} width={48} height={16} rx={4} fill={showVolts ? '#10b981' : '#1e293b'} fillOpacity={0.8} />
+            <text x={24} y={12} textAnchor="middle" fill={showVolts ? '#fff' : '#94a3b8'} fontSize="9" fontFamily="JetBrains Mono, monospace">
+              ⚡ V
+            </text>
+          </g>
+        </g>
         {/* ── Empty state ──────────────────────────────────────── */}
         {pathData === '' && areaData === '' && targetPathData === '' && (
           <text

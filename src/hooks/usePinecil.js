@@ -95,6 +95,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const [tempHistory, setTempHistory] = useState([]);
   const [connectionError, setConnectionError] = useState(null);
   const [dirtySettings, setDirtySettings] = useState(new Set());
+  const [peakWatts, setPeakWatts] = useState(0);
 
   const pendingSettings = useRef({});
   const historyRef = useRef([]);
@@ -102,6 +103,10 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   const liveDataRef = useRef({ SetTemp: 320, MaxTipTempAbility: 450, OperatingMode: 0, LiveTemp: 25 });
   const connectionRef = useRef('disconnected');
   const applySettingsRef = useRef(null);
+  const peakWattsRef = useRef(0);
+  const settingsReadThrottleRef = useRef(0);
+  const autoReconnectRef = useRef(false);
+  const autoReconnectTimerRef = useRef(null);
 
   const toastIdRef = useRef(0);
 
@@ -136,11 +141,16 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       const noise = (Math.random() - 0.5) * 80;
       const liveTemp = Math.round(baseTemp + noise);
       const watts = Math.round(450 + Math.random() * 200); // raw ×0.1 (45-65W)
+      const voltage = 190 + Math.round(Math.random() * 10);
       historyRef.current = [
         ...historyRef.current.slice(-(MAX_HISTORY - 1)),
-        { timestamp: now, liveTemp, setTemp: 320, watts }
+        { timestamp: now, liveTemp, setTemp: 320, watts: watts / 10, voltage: voltage / 10 }
       ];
       setLiveData(prev => ({ ...prev, LiveTemp: liveTemp, Watts: watts }));
+      if (watts / 10 > peakWattsRef.current) {
+        peakWattsRef.current = watts / 10;
+        setPeakWatts(watts / 10);
+      }
     }, pollingRate);
     return () => clearInterval(interval);
   }, [mock, pollingRate]);
@@ -153,24 +163,45 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     const unsub1 = api.onConnectionChange?.((status) => {
       if (typeof status === 'string') {
         setConnection(status);
-        if (status === 'disconnected') historyRef.current = [];
-        if (status === 'connected') setConnectionError(null);
+        if (status === 'disconnected') {
+          historyRef.current = [];
+          peakWattsRef.current = 0;
+          setPeakWatts(0);
+        }
+        if (status === 'connected') {
+          setConnectionError(null);
+          autoReconnectRef.current = true;
+        }
       } else if (status?.status) {
         setConnection(status.status);
-        if (status.status === 'disconnected') historyRef.current = [];
+        if (status.status === 'disconnected') {
+          historyRef.current = [];
+          peakWattsRef.current = 0;
+          setPeakWatts(0);
+        }
         if (status.deviceInfo) setDeviceInfo(status.deviceInfo);
         if (status.error) setConnectionError(status.error);
-        if (status.status === 'connected') setConnectionError(null);
+        if (status.status === 'connected') {
+          setConnectionError(null);
+          autoReconnectRef.current = true;
+        }
       }
     });
     if (unsub1) unsubs.push(unsub1);
 
     const unsub2 = api.onLiveData?.((data) => {
       setLiveData(data);
-      // Append to temperature history
-      const entry = { timestamp: Date.now(), liveTemp: data.LiveTemp, setTemp: data.SetTemp, watts: data.Watts };
+      // Append to temperature history with voltage and watts
+      const now = Date.now();
+      const wattsVal = (data.Watts || 0) / 10;
+      const voltageVal = (data.Voltage || 0) / 10;
+      const entry = { timestamp: now, liveTemp: data.LiveTemp, setTemp: data.SetTemp, watts: wattsVal, voltage: voltageVal };
       historyRef.current = [...historyRef.current.slice(-(MAX_HISTORY - 1)), entry];
-      // Batch-update state every 800ms
+      // Track peak watts
+      if (wattsVal > peakWattsRef.current) {
+        peakWattsRef.current = wattsVal;
+        setPeakWatts(wattsVal);
+      }
     });
     if (unsub2) unsubs.push(unsub2);
 
@@ -183,6 +214,9 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     if (unsub3) unsubs.push(unsub3);
 
     const unsub4 = api.onSettingsLoaded?.((s) => {
+      const now = Date.now();
+      if (now - settingsReadThrottleRef.current < 2000) return;
+      settingsReadThrottleRef.current = now;
       setSettings(s);
       setSettingsChanged(false);
       pendingSettings.current = {};
@@ -273,6 +307,8 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     setSettings({});
     setSettingsChanged(false);
     pendingSettings.current = {};
+    setPeakWatts(0);
+    peakWattsRef.current = 0;
   }, []);
 
   // Reconnect
@@ -300,6 +336,19 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       addToast('Reconnected successfully', 'success');
     }
   }, [deviceInfo, addToast]);
+
+  // Auto-reconnect control
+  const startAutoReconnect = useCallback(() => {
+    autoReconnectRef.current = true;
+  }, []);
+
+  const stopAutoReconnect = useCallback(() => {
+    autoReconnectRef.current = false;
+    if (autoReconnectTimerRef.current) {
+      clearTimeout(autoReconnectTimerRef.current);
+      autoReconnectTimerRef.current = null;
+    }
+  }, []);
 
   // Update setting (local)
   const updateSetting = useCallback((name, value) => {
@@ -385,6 +434,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
   useEffect(() => {
     return () => {
       if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current);
+      if (autoReconnectTimerRef.current) clearTimeout(autoReconnectTimerRef.current);
     };
   }, []);
 
@@ -399,6 +449,29 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
       setScanning(false);
     }
   }, [connection]);
+
+  // Auto-reconnect when connection drops (if auto-reconnect is enabled)
+  useEffect(() => {
+    if (connection === 'disconnected' && autoReconnectRef.current && !mock && deviceInfo?.address) {
+      autoReconnectTimerRef.current = setTimeout(async () => {
+        if (!autoReconnectRef.current) return;
+        try {
+          const result = await api?.bleConnect(deviceInfo.address);
+          if (!result?.ok) {
+            // Will retry on next disconnect
+          }
+        } catch (e) {
+          // Will retry on next disconnect
+        }
+      }, 3000);
+      return () => {
+        if (autoReconnectTimerRef.current) {
+          clearTimeout(autoReconnectTimerRef.current);
+          autoReconnectTimerRef.current = null;
+        }
+      };
+    }
+  }, [connection, mock, deviceInfo?.address]);
 
   // ─── Format helpers (memoized) ──────────────────────────
   const formatVoltage = useCallback((raw) => {
@@ -517,6 +590,7 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     tempHistory,
     connectionError,
     dirtySettings,
+    peakWatts,
 
     // Derived
     mode,
@@ -529,6 +603,8 @@ export function usePinecil({ mock = false, pollingRate = 500 } = {}) {
     connect,
     disconnect,
     reconnect,
+    startAutoReconnect,
+    stopAutoReconnect,
     setActiveTab,
     updateSetting,
     applySettings,

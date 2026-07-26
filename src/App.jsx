@@ -12,6 +12,7 @@ import LiveDataPanel from './components/LiveDataPanel';
 import SettingsPanel from './components/SettingsPanel';
 import ConnectionPanel from './components/ConnectionPanel';
 import Toast from './components/Toast';
+import FirmwareUpdateChecker from './components/FirmwareUpdateChecker';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const TABS = [
@@ -83,6 +84,9 @@ export default function App() {
 
   const p = usePinecil({ mock, pollingRate: appConfig.pollingRate });
 
+  // Derived: hall sensor detected?
+  const hallSensorActive = (p.liveData?.HallSensor ?? 0) > 0;
+
   // ─── Global keyboard shortcut handler ─────────────────
   useEffect(() => {
     // Global unhandled promise rejection handler
@@ -151,6 +155,13 @@ export default function App() {
     <ErrorBoundary>
     <div className="h-screen flex flex-col bg-iron-950 overflow-hidden">
       <TitleBar connection={p.connection} deviceInfo={p.deviceInfo} />
+
+      {/* Firmware update banner */}
+      {p.connection === 'connected' && p.deviceInfo && (
+        <div className="px-4 pt-1">
+          <FirmwareUpdateChecker deviceInfo={p.deviceInfo} connection={p.connection} />
+        </div>
+      )}
 
       {/* Toast overlay */}
       <Toast toasts={p.toasts} onDismiss={p.removeToast} />
@@ -265,6 +276,7 @@ export default function App() {
                         formatTipRes={p.formatTipRes}
                         formatWatts={p.formatWatts}
                         formatPowerSource={p.formatPowerSource}
+                        peakWatts={p.peakWatts}
                       />
                     </div>
                   </>
@@ -320,6 +332,8 @@ export default function App() {
                   onUpdateHotkeyConfig={updateHotkeyConfig}
                   appConfig={appConfig}
                   onUpdateAppConfig={updateAppConfig}
+                  deviceInfo={p.deviceInfo}
+                  hallSensorActive={hallSensorActive}
                 />
               </motion.div>
             )}

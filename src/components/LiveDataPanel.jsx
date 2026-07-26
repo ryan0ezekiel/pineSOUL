@@ -34,9 +34,10 @@ export default memo(function LiveDataPanel({
   formatTipRes,
   formatWatts,
   formatPowerSource,
+  peakWatts,
 }) {
   return (
-    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
+    <div className="grid grid-cols-3 lg:grid-cols-7 gap-2">
       <StatCard
         icon={Zap}
         label="Voltage"
@@ -52,6 +53,14 @@ export default memo(function LiveDataPanel({
         unit="W"
         color="text-soul-400"
         delay={0.1}
+      />
+      <StatCard
+        icon={Gauge}
+        label="Peak W"
+        value={peakWatts != null ? peakWatts.toFixed(1) : '0.0'}
+        unit="W"
+        color="text-amber-400"
+        delay={0.35}
       />
       <StatCard
         icon={Plug}

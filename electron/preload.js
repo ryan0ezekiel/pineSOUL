@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   bleSaveToFlash: () => ipcRenderer.invoke('ble:saveToFlash'),
 
+  // Auto-reconnect controls
+  enableAutoReconnect: () => ipcRenderer.invoke('ble:enableAutoReconnect'),
+  disableAutoReconnect: () => ipcRenderer.invoke('ble:disableAutoReconnect'),
+
   // Event listeners (returns cleanup function)
   onLiveData: (callback) => onChannel('ble:liveData', callback),
   onConnectionChange: (callback) => onChannel('ble:connectionChange', callback),

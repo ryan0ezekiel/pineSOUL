@@ -115,6 +115,16 @@ ipcMain.handle('ble:saveToFlash', async () => {
   catch (e) { return { ok: false, error: e.message }; }
 });
 
+ipcMain.handle('ble:enableAutoReconnect', async () => {
+  ble.enableAutoReconnect();
+  return { ok: true };
+});
+
+ipcMain.handle('ble:disableAutoReconnect', async () => {
+  ble.disableAutoReconnect();
+  return { ok: true };
+});
+
 let destroyPromise = null;
 
 app.whenReady().then(createWindow);

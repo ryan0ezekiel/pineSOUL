@@ -46,6 +46,10 @@ export class WebBleAdapter {
   #settingsChars = {};
   #saveChar = null;
   #connected = false;
+  #lastSettingsRead = 0;
+  #SETTINGS_THROTTLE_MS = 2000;
+  #autoReconnectEnabled = false;
+  #autoReconnectTimer = null;
 
   // ── Event system (matches Electron preload pattern) ────────────────
   on(event, callback) {
@@ -226,6 +230,8 @@ export class WebBleAdapter {
         deviceInfo,
       });
 
+      this.#autoReconnectEnabled = true;
+
       // Set up live data notifications + load settings
       await Promise.all([
         this.#setupBulkData(),
@@ -253,7 +259,6 @@ export class WebBleAdapter {
   #handleDisconnect(reason = 'unknown') {
     this.#connected = false;
     this.#server = null;
-    // Remove bulk data notification listener before releasing the characteristic
     if (this.#bulkDataChar && this.#bulkDataChar._pwaHandler) {
       this.#bulkDataChar.removeEventListener('characteristicvaluechanged', this.#bulkDataChar._pwaHandler);
       this.#bulkDataChar._pwaHandler = null;
@@ -262,6 +267,19 @@ export class WebBleAdapter {
     this.#settingsChars = {};
     this.#saveChar = null;
     this.#emit('connectionChange', { status: 'disconnected', reason });
+    // Auto-reconnect after unexpected disconnect
+    if (this.#autoReconnectEnabled && reason !== 'user' && this.#device) {
+      if (this.#autoReconnectTimer) clearTimeout(this.#autoReconnectTimer);
+      this.#autoReconnectTimer = setTimeout(async () => {
+        if (!this.#autoReconnectEnabled || !this.#device) return;
+        try {
+          console.debug('[pineSOUL] Auto-reconnecting...');
+          await this.#doConnect();
+        } catch (e) {
+          console.debug('[pineSOUL] Auto-reconnect failed:', e.message);
+        }
+      }, 3000);
+    }
   }
 
   // ── Live Data (subscribe to BulkData notifications) ────────────────
@@ -301,6 +319,14 @@ export class WebBleAdapter {
   // ── Load Settings (read all characteristics) ───────────────────────
   async #loadSettings() {
     try {
+      // Throttle: don't re-read settings too frequently
+      const now = Date.now();
+      if (now - this.#lastSettingsRead < this.#SETTINGS_THROTTLE_MS) {
+        console.debug('[pineSOUL] Settings read throttled — too soon since last read');
+        return;
+      }
+      this.#lastSettingsRead = now;
+
       const settingsServiceUUID = this.#version === 'v2.21'
         ? SERVICES.SETTINGS_V221
         : SERVICES.SETTINGS_V220;
@@ -432,6 +458,19 @@ export class WebBleAdapter {
       console.error('Failed to save to flash:', e);
       this.#emit('error', { message: 'Failed to save: ' + (e.message || e) });
       return { ok: false, error: e.message || String(e) };
+    }
+  }
+
+  // ── Auto-reconnect ─────────────────────────────────────────────────
+  enableAutoReconnect() {
+    this.#autoReconnectEnabled = true;
+  }
+
+  disableAutoReconnect() {
+    this.#autoReconnectEnabled = false;
+    if (this.#autoReconnectTimer) {
+      clearTimeout(this.#autoReconnectTimer);
+      this.#autoReconnectTimer = null;
     }
   }
 

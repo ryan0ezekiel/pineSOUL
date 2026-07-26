@@ -4,7 +4,7 @@ import {
   Flame, Moon, Power, Monitor, Settings2, Cpu,
   Save, ChevronDown, Minus, Plus, Keyboard, Gauge
 } from 'lucide-react';
-import { SETTING_META, VALUE_LIMITS } from '../constants.js';
+import { SETTING_META, VALUE_LIMITS, SETTING_DESCRIPTIONS, TEMPERATURE_RANGES } from '../constants.js';
 
 const GROUPS = {
   soldering: { label: 'Soldering', icon: Flame, color: 'text-orange-400' },
@@ -35,8 +35,20 @@ function getSelectOptions(name) {
   return map[name] || null;
 }
 
-const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDirty }) {
-  const limits = VALUE_LIMITS[name];
+const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDirty, temperatureUnit, deviceBuild, hallSensorActive }) {
+  const limits = (() => {
+    const baseLimits = VALUE_LIMITS[name];
+    if (!baseLimits) return null;
+    // Apply Fahrenheit ranges for temperature settings
+    if (TEMPERATURE_RANGES[temperatureUnit ?? 0]?.[name]) {
+      return TEMPERATURE_RANGES[temperatureUnit ?? 0][name];
+    }
+    // Brightness: v2.21 uses step 25, range [1,101]
+    if (name === 'Brightness' && deviceBuild === '2.21') {
+      return [1, 101];
+    }
+    return baseLimits;
+  })();
   const isToggle = meta.format && meta.format(0) === 'Off' && meta.format(1) === 'On';
   const isSelect = meta.format && !isToggle;
   const selectOptions = isSelect ? getSelectOptions(name) : null;
@@ -45,8 +57,11 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
     const isOn = value >= 1;
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col">
           <span className="text-sm text-iron-300">{meta.label}</span>
+          {SETTING_DESCRIPTIONS[name] && (
+            <p className="text-[10px] text-iron-600 mt-0.5 leading-tight">{SETTING_DESCRIPTIONS[name]}</p>
+          )}
           {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-soul-400" title="Modified" />}
         </div>
         <button
@@ -71,8 +86,11 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
   if (selectOptions) {
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col">
           <span className="text-sm text-iron-300">{meta.label}</span>
+          {SETTING_DESCRIPTIONS[name] && (
+            <p className="text-[10px] text-iron-600 mt-0.5 leading-tight">{SETTING_DESCRIPTIONS[name]}</p>
+          )}
           {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-soul-400" title="Modified" />}
         </div>
         <select
@@ -90,38 +108,37 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
   }
 
   if (limits) {
-    // Smart step: temperature settings (unit °) use 10 (=1°C), others use 1
     const isTemp = meta.unit === '°';
-    const step = isTemp && (limits[1] - limits[0]) > 50 ? 10 : 1;
-    // Raw settings are in °C directly (confirmed by PineSAM reference)
+    const isBrightness = name === 'Brightness' && deviceBuild === '2.21';
+    const step = isBrightness ? 25 : (isTemp && (limits[1] - limits[0]) > 50 ? 10 : 1);
     const displayValue = meta.format
-    ? meta.format(value ?? 0)
-    : isTemp ? (value ?? 0) : (value ?? 0);
+      ? meta.format(value ?? 0)
+      : isTemp ? (value ?? 0) : (value ?? 0);
+    const brightnessDisplay = isBrightness ? Math.round((value - 1) / 25 + 1) : null;
     return (
       <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col">
           <span className="text-sm text-iron-300">{meta.label}</span>
+          {SETTING_DESCRIPTIONS[name] && (
+            <p className="text-[10px] text-iron-600 mt-0.5 leading-tight">{SETTING_DESCRIPTIONS[name]}</p>
+          )}
           {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-soul-400" title="Modified" />}
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onChange(name, Math.max(limits[0], (value ?? 0) - step))}
-            aria-label={`Decrease ${meta.label}`}
-            className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400 hover:text-iron-200 transition-colors"
-          >
-            <Minus className="w-3 h-3" />
-          </button>
-          <div className="w-14 text-center text-sm font-mono text-iron-200 tabular-nums">
-            {displayValue}
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={limits[0]}
+            max={limits[1]}
+            step={step}
+            value={value ?? limits[0]}
+            onChange={e => onChange(name, parseInt(e.target.value, 10))}
+            aria-label={meta.label}
+            className="w-28 h-1.5 rounded-full appearance-none cursor-pointer bg-iron-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-soul-400 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-soul-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+          />
+          <span className="w-12 text-right text-sm font-mono text-iron-200 tabular-nums">
+            {brightnessDisplay ?? displayValue}
             {!meta.format && <span className="text-iron-500 text-[10px] ml-0.5">{meta.unit}</span>}
-          </div>
-          <button
-            onClick={() => onChange(name, Math.min(limits[1], (value ?? 0) + step))}
-            aria-label={`Increase ${meta.label}`}
-            className="w-7 h-7 rounded-md bg-iron-800 hover:bg-iron-700 border border-iron-700/50 flex items-center justify-center text-iron-400 hover:text-iron-200 transition-colors"
-          >
-            <Plus className="w-3 h-3" />
-          </button>
+          </span>
         </div>
       </div>
     );
@@ -129,8 +146,11 @@ const SettingRow = memo(function SettingRow({ name, value, meta, onChange, isDir
 
   return (
     <div className="flex items-center justify-between py-2.5 px-3 hover:bg-iron-800/40 rounded-lg transition-colors">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col">
         <span className="text-sm text-iron-300">{meta.label}</span>
+        {SETTING_DESCRIPTIONS[name] && (
+          <p className="text-[10px] text-iron-600 mt-0.5 leading-tight">{SETTING_DESCRIPTIONS[name]}</p>
+        )}
         {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-soul-400" title="Modified" />}
       </div>
       <span className="text-sm font-mono text-iron-400 tabular-nums">
@@ -187,7 +207,7 @@ const HotkeyRow = memo(function HotkeyRow({ label, description, value, onChange 
   );
 });
 
-const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
+const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange, pendingChanges, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig, deviceBuild, hallSensorActive }) {
   const [expanded, setExpanded] = useState(false);
   const group = GROUPS[groupKey];
   if (!group) return null;
@@ -199,7 +219,14 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
 
   const groupSettings = isSpecialGroup ? [] :
     Object.entries(SETTING_META)
-        .filter(([_, m]) => m.group === groupKey && !HIDDEN_SETTINGS.has(_))
+        .filter(([name, m]) => m.group === groupKey && !HIDDEN_SETTINGS.has(name))
+        .filter(([name]) => {
+          // Hide MinVolCell when DCInCutoff is 0 (USB/QC/PD mode)
+          if (name === 'MinVolCell' && (settings?.DCInCutoff ?? 0) === 0) return false;
+          // Hide HallEffectSensitivity when hall sensor not detected
+          if (name === 'HallEffectSensitivity' && hallSensorActive === false) return false;
+          return true;
+        })
         .map(([name, meta]) => ({ name, meta }));
 
   if (groupSettings.length === 0 && !isSpecialGroup) return null;
@@ -361,6 +388,9 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
                     meta={meta}
                     onChange={onChange}
                     isDirty={pendingChanges?.has(name)}
+                    temperatureUnit={settings?.TemperatureUnit}
+                    deviceBuild={deviceBuild}
+                    hallSensorActive={hallSensorActive}
                   />
                 ))
               )}
@@ -372,8 +402,11 @@ const SettingsGroup = memo(function SettingsGroup({ groupKey, settings, onChange
   );
 });
 
-export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChanges, dirtySettings, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig }) {
+export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChanges, dirtySettings, hotkeyConfig, onUpdateHotkeyConfig, appConfig, onUpdateAppConfig, deviceInfo, hallSensorActive }) {
   const [saving, setSaving] = useState(false);
+  const deviceBuild = deviceInfo?.build || deviceInfo?.firmwareVersion || '';
+  const buildNumber = deviceBuild.replace(/[^0-9.]/g, '');
+  const isV221 = buildNumber.startsWith('2.21');
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -424,6 +457,8 @@ export default function SettingsPanel({ settings, onChange, onSaveFlash, hasChan
             onUpdateHotkeyConfig={onUpdateHotkeyConfig}
             appConfig={appConfig}
             onUpdateAppConfig={onUpdateAppConfig}
+            deviceBuild={isV221 ? '2.21' : ''}
+            hallSensorActive={hallSensorActive}
           />
         ))}
       </div>

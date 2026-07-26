@@ -162,3 +162,57 @@ export const SETTING_META = {
   CalibrationOffset:   { label: 'CJC Offset',         unit: '',     group: 'calibration' },
   CalibrateCJC:        { label: 'Calibrate CJC',      unit: '',     group: 'calibration', format: v => 'Trigger' },
 };
+
+// ─── Setting Descriptions ──────────────────────────────────────────────
+export const SETTING_DESCRIPTIONS = {
+  SetTemperature: 'Target temperature for the soldering tip during active soldering.',
+  BoostTemperature: 'Temperature during boost mode (activated by holding the button).',
+  SleepTemperature: 'Temperature the tip cools to when iron enters sleep mode.',
+  SleepTimeout: 'Time of inactivity before the iron enters sleep mode.',
+  ShutdownTimeout: 'Time in sleep mode before the iron shuts down completely.',
+  AutoStart: 'What mode to start in when the iron is powered on.',
+  MotionSensitivity: 'How sensitive the motion sensor is for detecting movement. 0=Off, 9=Most sensitive.',
+  LockingMode: 'Lock the buttons to prevent accidental temperature changes.',
+  TemperatureUnit: 'Temperature display unit. Affects all temperature readings.',
+  DisplayRotation: 'Rotate the iron display for left or right-handed use.',
+  PowerLimit: 'Maximum power draw in watts. Limits the iron from drawing more than your supply can provide.',
+  DCInCutoff: 'DC input voltage cutoff. Set to match your power supply. When set to DC, hides MinVolCell.',
+  MinVolCell: 'Minimum voltage per cell for battery/solar operation. Only visible when DC mode is selected.',
+  QCMaxVoltage: 'Maximum voltage the iron will request from a QC charger.',
+  PDNegTimeout: 'PD negotiation timeout. How long to wait for USB-PD negotiation.',
+  Brightness: 'Screen brightness level.',
+  ColourInversion: 'Invert the display colors for better visibility in bright conditions.',
+  LOGOTime: 'How long to show the boot logo on startup.',
+  AnimSpeed: 'Speed of display animations.',
+  AnimLoop: 'Whether display animations loop continuously.',
+  CooldownBlink: 'Flash the temperature display while the tip is cooling down.',
+  ScrollingSpeed: 'Speed of scrolling text on the display.',
+  AdvancedIdle: 'Show detailed information on the idle screen.',
+  AdvancedSoldering: 'Show detailed information during soldering.',
+  PowerPulsePower: 'Power level for the anti-idle pulse (prevents sleep during use).',
+  PowerPulseWait: 'Delay between anti-idle pulses (×2.5 seconds).',
+  PowerPulseDuration: 'Duration of each anti-idle pulse (×250ms).',
+  TempChangeShortStep: 'Temperature increment for short button press.',
+  TempChangeLongStep: 'Temperature increment for long button press.',
+  ReverseButtonTempChange: 'Swap the +/- button temperature change direction.',
+  HallEffectSensitivity: 'Hall effect sensor sensitivity for magnetic stands. 0=Off.',
+  BLEEnabled: 'Enable or disable Bluetooth Low Energy.',
+  PDVpdoEnabled: 'Enable USB-PD Variable PDO negotiation for higher voltages.',
+  VoltageCalibration: 'VIN voltage calibration offset. Do not change unless calibrating.',
+  CalibrationOffset: 'Cold Junction Compensation offset. Do not change unless calibrating.',
+  CalibrateCJC: 'Trigger CJC calibration. Write 1 to save new calibration.',
+};
+
+// ─── Fahrenheit Temperature Ranges ─────────────────────────────────────
+export const TEMPERATURE_RANGES = {
+  0: { // Celsius
+    SetTemperature: [10, 450],
+    BoostTemperature: [250, 450],
+    SleepTemperature: [10, 300],
+  },
+  1: { // Fahrenheit
+    SetTemperature: [60, 850],
+    BoostTemperature: [480, 840],
+    SleepTemperature: [60, 580],
+  },
+};
